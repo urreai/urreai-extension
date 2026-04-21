@@ -11,7 +11,8 @@
     "activeTab",
     "contextMenus",
     "storage",
-    "scripting"
+    "scripting",
+    "clipboardRead"
   ],
 
   "host_permissions": [
