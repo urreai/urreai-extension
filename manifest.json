@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "UrreAI — Captura clínica",
+  "short_name": "UrreAI",
+  "version": "0.1.0",
+  "description": "Captura laboratorios, signos vitales y notas directo al paciente en UrreAI sin cambiar de pestaña.",
+  "author": "UrreAI",
+  "homepage_url": "https://urreai.com",
+
+  "permissions": [
+    "activeTab",
+    "contextMenus",
+    "storage",
+    "scripting"
+  ],
+
+  "host_permissions": [
+    "https://app.urreai.com/*",
+    "http://localhost:3000/*"
+  ],
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "UrreAI — Captura clínica",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["content/capture-overlay.css"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "urreai@urreai.com",
+      "strict_min_version": "109.0"
+    }
+  }
+}

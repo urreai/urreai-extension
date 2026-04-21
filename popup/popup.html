@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UrreAI</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <img src="../icons/icon-48.png" alt="UrreAI" width="28" height="28" class="header__logo">
+    <div class="header__titles">
+      <h1 class="header__brand">UrreAI</h1>
+      <p class="header__tag">Captura clínica</p>
+    </div>
+    <button id="settings-btn" class="icon-btn" title="Configuración">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </header>
+
+  <!-- No autenticado -->
+  <section id="view-auth" class="view hidden">
+    <div class="auth-card">
+      <div class="auth-card__icon">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h2 class="auth-card__title">Conecta tu cuenta UrreAI</h2>
+      <p class="auth-card__sub">Inicia sesión una vez para vincular la extensión con tu espacio clínico.</p>
+      <button id="connect-btn" class="btn btn--primary btn--block">
+        Conectar mi cuenta
+      </button>
+      <div id="token-input-wrap" class="token-input-wrap hidden">
+        <label class="token-input__label">Pega el código que te dimos en la página:</label>
+        <input id="token-input" class="token-input" type="text" placeholder="urreai_ext_..." autocomplete="off" spellcheck="false">
+        <button id="save-token-btn" class="btn btn--primary btn--block">Vincular extensión</button>
+        <p id="token-error" class="token-error hidden"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Autenticado -->
+  <section id="view-main" class="view hidden">
+    <!-- Selector de paciente -->
+    <div class="patient-picker">
+      <label class="patient-picker__label">Paciente activo</label>
+      <div class="patient-picker__box">
+        <select id="patient-select" class="patient-select">
+          <option value="">— Selecciona un paciente —</option>
+        </select>
+        <button id="refresh-patients" class="icon-btn icon-btn--small" title="Refrescar">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+      </div>
+      <p id="patient-hint" class="patient-picker__hint">Cargando tus pacientes…</p>
+    </div>
+
+    <!-- Acciones rápidas -->
+    <div class="actions">
+      <button class="action" data-action="capture-lab" disabled>
+        <div class="action__icon action__icon--blue">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6L4 17a2 2 0 0 0 1.7 3h12.6A2 2 0 0 0 20 17L15 8V2"/><line x1="9" y1="2" x2="15" y2="2"/></svg>
+        </div>
+        <div class="action__text">
+          <p class="action__title">Capturar laboratorios</p>
+          <p class="action__sub">Screenshot → IA estructura los valores</p>
+        </div>
+      </button>
+
+      <button class="action" data-action="capture-vitals" disabled>
+        <div class="action__icon action__icon--red">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <div class="action__text">
+          <p class="action__title">Capturar signos vitales</p>
+          <p class="action__sub">TA, FC, FR, T°, SatO2 desde pantalla</p>
+        </div>
+      </button>
+
+      <button class="action" data-action="save-selection" disabled>
+        <div class="action__icon action__icon--violet">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 2 14 8 20 8"/><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>
+        </div>
+        <div class="action__text">
+          <p class="action__title">Guardar selección como nota</p>
+          <p class="action__sub">Usa click derecho en el texto o el botón</p>
+        </div>
+      </button>
+
+      <button class="action" data-action="calculator">
+        <div class="action__icon action__icon--emerald">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="8" y2="18"/><line x1="12" y1="18" x2="12" y2="18"/><line x1="16" y1="18" x2="16" y2="18"/></svg>
+        </div>
+        <div class="action__text">
+          <p class="action__title">Calculadoras clínicas</p>
+          <p class="action__sub">205 calculadoras — abre en UrreAI</p>
+        </div>
+      </button>
+    </div>
+
+    <!-- Feedback inline -->
+    <div id="feedback" class="feedback hidden" role="status"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <a id="open-app" class="footer__link" href="https://app.urreai.com/dashboard" target="_blank" rel="noopener">Abrir UrreAI</a>
+      <button id="logout-btn" class="footer__link footer__link--muted">Cerrar sesión</button>
+    </footer>
+  </section>
+
+  <script src="popup.js"></script>
+</body>
+</html>
