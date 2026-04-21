@@ -266,6 +266,18 @@ html, body {
 .action__icon--red     { background: #fee2e2; color: #dc2626; }
 .action__icon--violet  { background: #ede9fe; color: #7c3aed; }
 .action__icon--emerald { background: #d1fae5; color: #047857; }
+.action__icon--indigo  { background: #e0e7ff; color: #4338ca; }
+.action__icon--amber   { background: #fef3c7; color: #b45309; }
+.action__icon--teal    { background: #ccfbf1; color: #0f766e; }
+.actions-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 10px 2px 4px;
+}
+.actions-label:first-of-type { margin-top: 0; }
 .action__text { flex: 1; min-width: 0; }
 .action__title {
   font-size: 13px;

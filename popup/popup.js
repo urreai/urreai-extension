@@ -155,8 +155,10 @@ async function loadPatients() {
     const saved = await storageGet(STORAGE_KEY_PATIENT)
     if (saved && Array.from(select.options).some(o => o.value === saved)) {
       select.value = saved
-      updateActionsEnabled()
     }
+    // Habilitar las acciones que no dependen de paciente (calcs, flashcard,
+    // caso rapido, sesion de hoy) desde el inicio.
+    updateActionsEnabled()
   } catch (err) {
     if (err.message === 'NO_AUTH') {
       showView('auth')
@@ -173,12 +175,13 @@ document.getElementById('patient-select').addEventListener('change', async e => 
 
 document.getElementById('refresh-patients').addEventListener('click', () => loadPatients())
 
+const ACTIONS_NO_PATIENT = new Set(['calculator-favs', 'new-case', 'new-flashcard', 'today-study'])
+
 function updateActionsEnabled() {
   const val = document.getElementById('patient-select').value
   document.querySelectorAll('.action[data-action]').forEach(btn => {
     const action = btn.getAttribute('data-action')
-    // calculadora no necesita paciente
-    if (action === 'calculator') {
+    if (ACTIONS_NO_PATIENT.has(action)) {
       btn.disabled = false
       return
     }
@@ -203,8 +206,25 @@ document.querySelectorAll('.action[data-action]').forEach(btn => {
     const action = btn.getAttribute('data-action')
     const target = document.getElementById('patient-select').value
 
-    if (action === 'calculator') {
-      chrome.tabs.create({ url: `${API_BASE}/dashboard/calculators` })
+    // Acciones que no requieren paciente activo
+    if (action === 'calculator-favs') {
+      chrome.tabs.create({ url: `${API_BASE}/dashboard/calculators?view=favoritas` })
+      window.close()
+      return
+    }
+    if (action === 'new-case') {
+      chrome.tabs.create({ url: `${API_BASE}/dashboard/logbook?new=case` })
+      window.close()
+      return
+    }
+    if (action === 'new-flashcard') {
+      chrome.tabs.create({ url: `${API_BASE}/dashboard/study-queue?new=1` })
+      window.close()
+      return
+    }
+    if (action === 'today-study') {
+      chrome.tabs.create({ url: `${API_BASE}/dashboard/study?tab=hoy` })
+      window.close()
       return
     }
 
