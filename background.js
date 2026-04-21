@@ -31,7 +31,40 @@ async function getPreferences() {
     appendToToday:  prefs?.appendToToday  !== false, // default true
     formatLab:      prefs?.formatLab      ?? '',
     formatVital:    prefs?.formatVital    ?? '',
+    saveMode:       prefs?.saveMode       ?? 'save',  // 'save' | 'clipboard' | 'both'
   }
+}
+
+/**
+ * Copia texto al portapapeles del tab activo. Como el service worker no
+ * tiene acceso a navigator.clipboard directo, inyecta un script que lo
+ * ejecuta en el contexto de la página.
+ */
+async function copyToClipboardFromTab(text) {
+  if (!text) return
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+    const tab = tabs[0]
+    if (!tab) return
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      args: [text],
+      func: async (txt) => {
+        try {
+          await navigator.clipboard.writeText(txt)
+        } catch {
+          // Fallback: textarea + execCommand (más viejo pero funciona sin permisos)
+          const ta = document.createElement('textarea')
+          ta.value = txt
+          ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;'
+          document.body.appendChild(ta)
+          ta.select()
+          try { document.execCommand('copy') } catch {}
+          ta.remove()
+        }
+      },
+    })
+  } catch (err) { console.error('[UrreAI] copyToClipboard fail:', err) }
 }
 
 async function apiPost(path, body) {
@@ -51,6 +84,7 @@ async function apiPost(path, body) {
     if (!('format' in body) && body.kind) {
       body.format = body.kind === 'lab' ? prefs.formatLab : body.kind === 'vital' ? prefs.formatVital : ''
     }
+    if (!('saveMode' in body)) body.saveMode = prefs.saveMode
   }
 
   const res = await fetch(`${API_BASE}${path}`, {
@@ -60,6 +94,12 @@ async function apiPost(path, body) {
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok || !data.success) throw new Error(data.error || `Error ${res.status}`)
+
+  // Si el API devolvió texto para clipboard, copiarlo automáticamente.
+  if (data?.data?.clipboardText) {
+    await copyToClipboardFromTab(data.data.clipboardText)
+  }
+
   return data
 }
 

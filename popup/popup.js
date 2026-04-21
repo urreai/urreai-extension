@@ -12,6 +12,7 @@ const DEFAULT_PREFS = {
   appendToToday: true,
   formatLab: '',
   formatVital: '',
+  saveMode: 'save',  // 'save' | 'clipboard' | 'both'
 }
 
 // ─── Storage helpers (cross-browser: chrome.* funciona en Firefox tambien con manifest v3) ──
@@ -51,6 +52,10 @@ async function apiFetch(path, opts = {}) {
   if (!res.ok || !data.success) {
     throw new Error(data.error || `Error ${res.status}`)
   }
+  // Auto-copy si el API devolvió clipboardText
+  if (data?.data?.clipboardText) {
+    try { await navigator.clipboard.writeText(data.data.clipboardText) } catch {}
+  }
   return data
 }
 
@@ -67,6 +72,15 @@ function showView(name) {
 
 // ─── Settings ──────────────────────────────────────────────────────────────
 
+function updateSaveModeUI() {
+  // Ocultar sección de "agregar a nota de hoy" si el modo es solo clipboard
+  const mode = (document.querySelector('input[name="saveMode"]:checked') || {}).value
+  const appendGroup = document.getElementById('settings-group-append')
+  if (appendGroup) {
+    appendGroup.style.display = mode === 'clipboard' ? 'none' : ''
+  }
+}
+
 async function loadPrefsIntoForm() {
   const saved = await storageGet(STORAGE_KEY_PREFS)
   const prefs = { ...DEFAULT_PREFS, ...(saved || {}) }
@@ -77,9 +91,13 @@ async function loadPrefsIntoForm() {
   document.getElementById('format-vital').value = prefs.formatVital
   document.getElementById('append-true').checked = prefs.appendToToday
   document.getElementById('append-false').checked = !prefs.appendToToday
+  const modeEl = document.getElementById(`mode-${prefs.saveMode}`)
+  if (modeEl) modeEl.checked = true
+  updateSaveModeUI()
 }
 
 async function savePrefs() {
+  const modeInput = document.querySelector('input[name="saveMode"]:checked')
   const prefs = {
     fieldLab: document.getElementById('field-lab').value,
     fieldVital: document.getElementById('field-vital').value,
@@ -87,12 +105,18 @@ async function savePrefs() {
     formatLab: document.getElementById('format-lab').value.trim(),
     formatVital: document.getElementById('format-vital').value.trim(),
     appendToToday: document.getElementById('append-true').checked,
+    saveMode: modeInput ? modeInput.value : 'save',
   }
   await storageSet(STORAGE_KEY_PREFS, prefs)
   const saved = document.getElementById('prefs-saved')
   saved.classList.remove('hidden')
   setTimeout(() => saved.classList.add('hidden'), 2000)
 }
+
+// Reactivo: cuando el usuario cambia el modo, ocultar/mostrar secciones
+document.querySelectorAll('input[name="saveMode"]').forEach(el => {
+  el.addEventListener('change', updateSaveModeUI)
+})
 
 document.getElementById('settings-btn').addEventListener('click', async () => {
   await loadPrefsIntoForm()
@@ -345,9 +369,13 @@ document.querySelectorAll('.action[data-action]').forEach(btn => {
                 sourceUrl: tab.url,
                 field: prefs.fieldNote,
                 appendToTodayNote: prefs.appendToToday,
+                saveMode: prefs.saveMode,
               }),
             })
-            const tipo = prefs.appendToToday ? 'agregada a nota de hoy' : 'nota nueva creada'
+            let tipo
+            if (prefs.saveMode === 'clipboard')   tipo = 'copiado al portapapeles'
+            else if (prefs.saveMode === 'both')   tipo = 'guardado + copiado al portapapeles'
+            else                                   tipo = prefs.appendToToday ? 'agregado a nota de hoy' : 'nota nueva creada'
             showFeedback('ok', `✓ ${text.length} caracteres — ${tipo}`)
           } catch (err) {
             showFeedback('err', err.message || 'Error guardando')

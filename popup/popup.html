@@ -32,6 +32,25 @@
       <p class="settings-help">Define dónde se guardan las capturas en tus notas SOAP y cómo se formatean.</p>
 
       <div class="settings-group">
+        <label class="settings-label">¿Qué hacer con cada captura?</label>
+        <div class="toggle-row">
+          <label class="toggle-opt">
+            <input type="radio" name="saveMode" value="save" id="mode-save">
+            <span>💾 Guardar en la historia del paciente</span>
+          </label>
+          <label class="toggle-opt">
+            <input type="radio" name="saveMode" value="clipboard" id="mode-clipboard">
+            <span>📋 Solo copiar al portapapeles</span>
+          </label>
+          <label class="toggle-opt">
+            <input type="radio" name="saveMode" value="both" id="mode-both">
+            <span>✨ Ambos — guardar y copiar</span>
+          </label>
+        </div>
+        <p class="settings-hint">En modo solo portapapeles no necesitas paciente activo — pegas el resultado donde quieras (historia del hospital, Word, etc.).</p>
+      </div>
+
+      <div class="settings-group" id="settings-group-append">
         <label class="settings-label">¿Agregar a la nota de hoy?</label>
         <div class="toggle-row">
           <label class="toggle-opt">
