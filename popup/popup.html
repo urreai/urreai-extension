@@ -19,6 +19,88 @@
     </button>
   </header>
 
+  <!-- Settings -->
+  <section id="view-settings" class="view hidden">
+    <div class="settings-header">
+      <button id="settings-back" class="icon-btn icon-btn--small" title="Volver">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2 class="settings-title">Preferencias</h2>
+    </div>
+
+    <div class="settings-scroll">
+      <p class="settings-help">Define dónde se guardan las capturas en tus notas SOAP y cómo se formatean.</p>
+
+      <div class="settings-group">
+        <label class="settings-label">¿Agregar a la nota de hoy?</label>
+        <div class="toggle-row">
+          <label class="toggle-opt">
+            <input type="radio" name="appendToday" value="true" id="append-true">
+            <span>Sí — agrega al final del campo</span>
+          </label>
+          <label class="toggle-opt">
+            <input type="radio" name="appendToday" value="false" id="append-false">
+            <span>No — crea nota nueva cada vez</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <label class="settings-label" for="field-lab">Campo para laboratorios</label>
+        <select id="field-lab" class="settings-select">
+          <option value="subjetivo">Subjetivo (S)</option>
+          <option value="objetivo">Objetivo (O)</option>
+          <option value="analisis">Análisis (A)</option>
+          <option value="plan">Plan (P)</option>
+        </select>
+      </div>
+
+      <div class="settings-group">
+        <label class="settings-label" for="field-vital">Campo para signos vitales</label>
+        <select id="field-vital" class="settings-select">
+          <option value="subjetivo">Subjetivo (S)</option>
+          <option value="objetivo">Objetivo (O)</option>
+          <option value="analisis">Análisis (A)</option>
+          <option value="plan">Plan (P)</option>
+        </select>
+      </div>
+
+      <div class="settings-group">
+        <label class="settings-label" for="field-note">Campo para texto seleccionado</label>
+        <select id="field-note" class="settings-select">
+          <option value="subjetivo">Subjetivo (S)</option>
+          <option value="objetivo">Objetivo (O)</option>
+          <option value="analisis">Análisis (A)</option>
+          <option value="plan">Plan (P)</option>
+        </select>
+      </div>
+
+      <div class="settings-group">
+        <label class="settings-label" for="format-lab">Formato custom laboratorios <span class="settings-label-hint">(opcional)</span></label>
+        <textarea id="format-lab" class="settings-textarea" placeholder="Ej: === PARACLÍNICOS {fecha} ===&#10;{content}&#10;" rows="3"></textarea>
+        <p class="settings-hint">Usa <code>{content}</code> donde quieres que se pegue el resultado. Déjalo vacío para usar el formato por defecto.</p>
+      </div>
+
+      <div class="settings-group">
+        <label class="settings-label" for="format-vital">Formato custom signos vitales <span class="settings-label-hint">(opcional)</span></label>
+        <textarea id="format-vital" class="settings-textarea" placeholder="Ej: SV: {content}" rows="2"></textarea>
+      </div>
+
+      <div class="settings-group settings-group--kbd">
+        <label class="settings-label">Atajos de teclado</label>
+        <div class="kbd-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd><span>Abrir popup</span></div>
+        <div class="kbd-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd><span>Capturar laboratorio</span></div>
+        <div class="kbd-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd><span>Capturar signos vitales</span></div>
+        <button type="button" id="open-shortcuts" class="settings-link-btn">Personalizar atajos →</button>
+      </div>
+    </div>
+
+    <div class="settings-footer">
+      <button id="save-prefs" class="btn btn--primary btn--block">Guardar preferencias</button>
+      <p id="prefs-saved" class="prefs-saved hidden">✓ Guardado</p>
+    </div>
+  </section>
+
   <!-- No autenticado -->
   <section id="view-auth" class="view hidden">
     <div class="auth-card">

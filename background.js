@@ -20,9 +20,39 @@ async function getActivePatient() {
   return target || null
 }
 
+const STORAGE_KEY_PREFS = 'urreai_prefs'
+
+async function getPreferences() {
+  const { [STORAGE_KEY_PREFS]: prefs } = await storageGet([STORAGE_KEY_PREFS])
+  return {
+    fieldLab:       prefs?.fieldLab       ?? 'objetivo',
+    fieldVital:     prefs?.fieldVital     ?? 'objetivo',
+    fieldNote:      prefs?.fieldNote      ?? 'subjetivo',
+    appendToToday:  prefs?.appendToToday  !== false, // default true
+    formatLab:      prefs?.formatLab      ?? '',
+    formatVital:    prefs?.formatVital    ?? '',
+  }
+}
+
 async function apiPost(path, body) {
   const token = await getToken()
   if (!token) throw new Error('Sin sesión. Abre la extensión y vincula tu cuenta.')
+
+  // Inyectar preferencias automáticamente en capturas
+  if (path === '/api/extension/capture' && body && typeof body === 'object') {
+    const prefs = await getPreferences()
+    if (!('field' in body)) {
+      body.field =
+        body.kind === 'lab'   ? prefs.fieldLab :
+        body.kind === 'vital' ? prefs.fieldVital :
+        prefs.fieldNote
+    }
+    if (!('appendToTodayNote' in body)) body.appendToTodayNote = prefs.appendToToday
+    if (!('format' in body) && body.kind) {
+      body.format = body.kind === 'lab' ? prefs.formatLab : body.kind === 'vital' ? prefs.formatVital : ''
+    }
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -163,6 +193,46 @@ function escXml(s) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;')
 }
+
+// ─── Commands (atajos de teclado) ──────────────────────────────────────────
+// Ctrl+Shift+L / Ctrl+Shift+I — capturar lab/vital directamente sobre la
+// pestaña activa, sin necesidad de abrir el popup.
+
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command !== 'capture-lab' && command !== 'capture-vital') return
+  const captureType = command === 'capture-lab' ? 'lab' : 'vital'
+
+  const target = await getActivePatient()
+  if (!target) {
+    // Sin paciente activo no hay donde guardar. Abrimos el popup para
+    // que el usuario elija uno.
+    try { await chrome.action.openPopup() } catch {}
+    return
+  }
+
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+    const tab = tabs[0]
+    if (!tab) return
+
+    // Guardar contexto para el content script
+    await chrome.storage.local.set({
+      urreai_capture: { captureType, target, tabId: tab.id },
+    })
+
+    // Inyectar overlay de seleccion de region
+    await chrome.scripting.insertCSS({
+      target: { tabId: tab.id },
+      files: ['content/capture-overlay.css'],
+    })
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['content/capture-overlay.js'],
+    })
+  } catch (err) {
+    console.error('[UrreAI] capture command failed:', err)
+  }
+})
 
 function notify(text, type) {
   // Fallback silencioso — extension notifications requieren permiso extra

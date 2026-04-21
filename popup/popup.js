@@ -3,6 +3,16 @@
 const API_BASE = 'https://app.urreai.com'
 const STORAGE_KEY_TOKEN = 'urreai_token'
 const STORAGE_KEY_PATIENT = 'urreai_active_patient'
+const STORAGE_KEY_PREFS = 'urreai_prefs'
+
+const DEFAULT_PREFS = {
+  fieldLab: 'objetivo',
+  fieldVital: 'objetivo',
+  fieldNote: 'subjetivo',
+  appendToToday: true,
+  formatLab: '',
+  formatVital: '',
+}
 
 // ─── Storage helpers (cross-browser: chrome.* funciona en Firefox tambien con manifest v3) ──
 
@@ -46,10 +56,61 @@ async function apiFetch(path, opts = {}) {
 
 // ─── View switching ────────────────────────────────────────────────────────
 
+let lastView = 'main'
+
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'))
   const el = document.getElementById(`view-${name}`)
   if (el) el.classList.remove('hidden')
+  if (name === 'main' || name === 'auth') lastView = name
+}
+
+// ─── Settings ──────────────────────────────────────────────────────────────
+
+async function loadPrefsIntoForm() {
+  const saved = await storageGet(STORAGE_KEY_PREFS)
+  const prefs = { ...DEFAULT_PREFS, ...(saved || {}) }
+  document.getElementById('field-lab').value = prefs.fieldLab
+  document.getElementById('field-vital').value = prefs.fieldVital
+  document.getElementById('field-note').value = prefs.fieldNote
+  document.getElementById('format-lab').value = prefs.formatLab
+  document.getElementById('format-vital').value = prefs.formatVital
+  document.getElementById('append-true').checked = prefs.appendToToday
+  document.getElementById('append-false').checked = !prefs.appendToToday
+}
+
+async function savePrefs() {
+  const prefs = {
+    fieldLab: document.getElementById('field-lab').value,
+    fieldVital: document.getElementById('field-vital').value,
+    fieldNote: document.getElementById('field-note').value,
+    formatLab: document.getElementById('format-lab').value.trim(),
+    formatVital: document.getElementById('format-vital').value.trim(),
+    appendToToday: document.getElementById('append-true').checked,
+  }
+  await storageSet(STORAGE_KEY_PREFS, prefs)
+  const saved = document.getElementById('prefs-saved')
+  saved.classList.remove('hidden')
+  setTimeout(() => saved.classList.add('hidden'), 2000)
+}
+
+document.getElementById('settings-btn').addEventListener('click', async () => {
+  await loadPrefsIntoForm()
+  showView('settings')
+})
+document.getElementById('settings-back').addEventListener('click', () => {
+  showView(lastView)
+})
+document.getElementById('save-prefs').addEventListener('click', savePrefs)
+document.getElementById('open-shortcuts').addEventListener('click', () => {
+  chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })
+})
+
+// ─── Inyectar prefs en apiFetch al capturar ────────────────────────────────
+
+async function getPrefs() {
+  const saved = await storageGet(STORAGE_KEY_PREFS)
+  return { ...DEFAULT_PREFS, ...(saved || {}) }
 }
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
@@ -274,6 +335,7 @@ document.querySelectorAll('.action[data-action]').forEach(btn => {
             return
           }
           try {
+            const prefs = await getPrefs()
             await apiFetch('/api/extension/capture', {
               method: 'POST',
               body: JSON.stringify({
@@ -281,9 +343,12 @@ document.querySelectorAll('.action[data-action]').forEach(btn => {
                 target,
                 text,
                 sourceUrl: tab.url,
+                field: prefs.fieldNote,
+                appendToTodayNote: prefs.appendToToday,
               }),
             })
-            showFeedback('ok', `✓ Nota guardada (${text.length} caracteres)`)
+            const tipo = prefs.appendToToday ? 'agregada a nota de hoy' : 'nota nueva creada'
+            showFeedback('ok', `✓ ${text.length} caracteres — ${tipo}`)
           } catch (err) {
             showFeedback('err', err.message || 'Error guardando')
           }

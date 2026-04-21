@@ -26,6 +26,20 @@
         "mac": "Command+Shift+U"
       },
       "description": "Abrir UrreAI Captura Clínica"
+    },
+    "capture-lab": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
+      "description": "Capturar laboratorio (región de la pantalla)"
+    },
+    "capture-vital": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+I",
+        "mac": "Command+Shift+I"
+      },
+      "description": "Capturar signos vitales (región de la pantalla)"
     }
   },
 
