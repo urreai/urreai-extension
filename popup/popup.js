@@ -281,10 +281,46 @@ document.querySelectorAll('.action[data-action]').forEach(btn => {
 
 // ─── Init ──────────────────────────────────────────────────────────────────
 
+// ─── Populate popular calculators grid ───────────────────────────────────
+
+const POPULAR_CALCS = [
+  { name: 'Glasgow',       q: 'glasgow',         color: '#3B82F6' },
+  { name: 'CURB-65',       q: 'curb-65',         color: '#10B981' },
+  { name: 'qSOFA',         q: 'qsofa',           color: '#EF4444' },
+  { name: 'Apgar',         q: 'apgar',           color: '#F59E0B' },
+  { name: 'IMC / BMI',     q: 'imc',             color: '#8B5CF6' },
+  { name: 'TFG CKD-EPI',   q: 'tfg',             color: '#06B6D4' },
+  { name: 'Dosis peds',    q: 'dosis pediátrica', color: '#EC4899' },
+  { name: 'Wells TEP',     q: 'wells tep',       color: '#0EA5E9' },
+  { name: 'CHA₂DS₂-VASc',  q: 'chads',           color: '#DC2626' },
+  { name: 'Z-scores OMS',  q: 'z-score',         color: '#059669' },
+  { name: 'NIHSS',         q: 'nihss',           color: '#7C3AED' },
+  { name: 'PEWS',          q: 'pews',            color: '#F97316' },
+]
+
+function renderCalcGrid() {
+  const grid = document.getElementById('calc-grid')
+  if (!grid) return
+  grid.innerHTML = ''
+  POPULAR_CALCS.forEach(c => {
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'calc-pill'
+    btn.title = `Abrir ${c.name} en UrreAI`
+    btn.innerHTML = `<span class="calc-pill__dot" style="background:${c.color}"></span>${c.name}`
+    btn.addEventListener('click', () => {
+      chrome.tabs.create({ url: `${API_BASE}/dashboard/calculators?q=${encodeURIComponent(c.q)}` })
+      window.close()
+    })
+    grid.appendChild(btn)
+  })
+}
+
 ;(async () => {
   const token = await storageGet(STORAGE_KEY_TOKEN)
   if (token) {
     showView('main')
+    renderCalcGrid()
     await loadPatients()
     return
   }

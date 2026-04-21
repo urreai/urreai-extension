@@ -37,34 +37,132 @@ async function apiPost(path, body) {
 
 chrome.runtime.onInstalled.addListener(() => {
   try { chrome.contextMenus.removeAll() } catch {}
+  // Menu al seleccionar texto
   chrome.contextMenus.create({
     id: 'urreai-save-selection',
     title: 'UrreAI: Guardar selección como nota',
     contexts: ['selection'],
   })
+  // Menu al hacer click derecho en una imagen
+  chrome.contextMenus.create({
+    id: 'urreai-capture-image-lab',
+    title: 'UrreAI: Capturar imagen como laboratorio',
+    contexts: ['image'],
+  })
+  chrome.contextMenus.create({
+    id: 'urreai-capture-image-vital',
+    title: 'UrreAI: Capturar imagen como signo vital',
+    contexts: ['image'],
+  })
 })
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId !== 'urreai-save-selection') return
-  const text = (info.selectionText || '').trim()
-  if (!text) return
   const target = await getActivePatient()
-  if (!target) {
-    notify('Primero selecciona un paciente en la extensión.', 'error')
+
+  // Guardar seleccion como nota
+  if (info.menuItemId === 'urreai-save-selection') {
+    const text = (info.selectionText || '').trim()
+    if (!text) return
+    if (!target) { notify('Primero selecciona un paciente en la extensión.', 'error'); return }
+    try {
+      await apiPost('/api/extension/capture', { kind: 'note', target, text, sourceUrl: tab?.url || '' })
+      notify('Nota guardada en UrreAI.', 'ok')
+    } catch (err) { notify(err.message || 'Error guardando la nota.', 'error') }
     return
   }
-  try {
-    await apiPost('/api/extension/capture', {
-      kind: 'note',
-      target,
-      text,
-      sourceUrl: tab?.url || '',
-    })
-    notify('Nota guardada en UrreAI.', 'ok')
-  } catch (err) {
-    notify(err.message || 'Error guardando la nota.', 'error')
+
+  // Capturar imagen directa (sin selector de region) como lab o vital
+  if (info.menuItemId === 'urreai-capture-image-lab' || info.menuItemId === 'urreai-capture-image-vital') {
+    if (!target) { notify('Primero selecciona un paciente en la extensión.', 'error'); return }
+    const kind = info.menuItemId === 'urreai-capture-image-lab' ? 'lab' : 'vital'
+    const srcUrl = info.srcUrl
+    if (!srcUrl) { notify('No se encontró la imagen.', 'error'); return }
+    try {
+      // Descargar la imagen como dataURL (el service worker puede hacer fetch)
+      const res = await fetch(srcUrl)
+      if (!res.ok) throw new Error(`No se pudo descargar la imagen (${res.status})`)
+      const blob = await res.blob()
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result)
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+      await apiPost('/api/extension/capture', {
+        kind, target,
+        imageDataUrl: dataUrl,
+        sourceUrl: tab?.url || srcUrl,
+      })
+      notify(`Imagen enviada a UrreAI como ${kind === 'lab' ? 'laboratorio' : 'signos vitales'}.`, 'ok')
+    } catch (err) { notify(err.message || 'Error procesando imagen.', 'error') }
+    return
   }
 })
+
+// ─── Omnibox: escribe "urreai <query>" en la barra de direcciones ──────────
+
+chrome.omnibox.onInputChanged.addListener((text, suggest) => {
+  const q = (text || '').trim()
+  // Lista curada de sugerencias según lo que escriba el usuario
+  const allCalcs = [
+    { name: 'Glasgow Coma Scale', slug: 'glasgow' },
+    { name: 'CURB-65 (Neumonía)', slug: 'curb-65' },
+    { name: 'qSOFA (Sepsis)', slug: 'qsofa' },
+    { name: 'SOFA', slug: 'sofa' },
+    { name: 'Apgar (Recién nacido)', slug: 'apgar' },
+    { name: 'Wells DVT', slug: 'wells-dvt' },
+    { name: 'Wells TEP', slug: 'wells-tep' },
+    { name: 'TFG (CKD-EPI)', slug: 'tfg-ckd-epi' },
+    { name: 'IMC / BMI', slug: 'imc' },
+    { name: 'Dosis Pediátrica por peso', slug: 'dosis-peds' },
+    { name: 'CHA₂DS₂-VASc', slug: 'cha2ds2-vasc' },
+    { name: 'HAS-BLED', slug: 'has-bled' },
+    { name: 'Bristol (Heces)', slug: 'bristol' },
+    { name: 'PEWS (Pediatric Early Warning)', slug: 'pews' },
+    { name: 'Z-scores OMS (Peso/Talla)', slug: 'z-scores' },
+    { name: 'NIHSS (ACV)', slug: 'nihss' },
+    { name: 'Índice Shock', slug: 'indice-shock' },
+  ]
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const qNorm = norm(q)
+  const matches = qNorm
+    ? allCalcs.filter(c => norm(c.name).includes(qNorm) || norm(c.slug).includes(qNorm))
+    : allCalcs.slice(0, 6)
+
+  const suggestions = matches.slice(0, 8).map(c => ({
+    content: c.name,
+    description: `<match>${escXml(c.name)}</match> <dim>— abrir en UrreAI</dim>`,
+  }))
+  // Opcion extra: abrir página completa con búsqueda
+  if (q) {
+    suggestions.push({
+      content: `__search__${q}`,
+      description: `Buscar <match>${escXml(q)}</match> en todas las 205 calculadoras`,
+    })
+  }
+  suggest(suggestions)
+})
+
+chrome.omnibox.onInputEntered.addListener((input) => {
+  let url
+  if (input.startsWith('__search__')) {
+    const q = input.slice(10)
+    url = `${API_BASE}/dashboard/calculators?q=${encodeURIComponent(q)}`
+  } else {
+    // Usa el texto como query contra la calculadoras
+    url = `${API_BASE}/dashboard/calculators?q=${encodeURIComponent(input)}`
+  }
+  chrome.tabs.create({ url })
+})
+
+function escXml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
 
 function notify(text, type) {
   // Fallback silencioso — extension notifications requieren permiso extra

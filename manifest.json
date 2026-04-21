@@ -15,6 +15,20 @@
     "clipboardRead"
   ],
 
+  "omnibox": {
+    "keyword": "urreai"
+  },
+
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+U",
+        "mac": "Command+Shift+U"
+      },
+      "description": "Abrir UrreAI Captura Clínica"
+    }
+  },
+
   "host_permissions": [
     "https://app.urreai.com/*",
     "http://localhost:3000/*"

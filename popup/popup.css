@@ -278,6 +278,55 @@ html, body {
   margin: 10px 2px 4px;
 }
 .actions-label:first-of-type { margin-top: 0; }
+
+/* Calculadoras populares — grid de pills */
+.calc-grid-wrap {
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--slate-50);
+  border: 1px solid var(--slate-100);
+  border-radius: 10px;
+}
+.calc-grid-label {
+  font-size: 10px;
+  color: var(--slate-500);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px;
+}
+.calc-pill {
+  padding: 7px 9px;
+  background: #fff;
+  border: 1px solid var(--slate-200);
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--slate-700);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.12s;
+  font-family: inherit;
+  line-height: 1.25;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.calc-pill:hover {
+  border-color: var(--violet);
+  background: #faf5ff;
+  color: var(--violet);
+  transform: translateY(-1px);
+}
+.calc-pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 .action__text { flex: 1; min-width: 0; }
 .action__title {
   font-size: 13px;
