@@ -118,6 +118,7 @@ async function loadPatients() {
   try {
     const { data } = await apiFetch('/api/extension/context')
     const rounds = data.roundPatients || []
+    const soap = data.soapPatients || []
     const recent = data.recentPatients || []
 
     select.innerHTML = '<option value="">— Selecciona un paciente —</option>'
@@ -129,6 +130,19 @@ async function loadPatients() {
         const opt = document.createElement('option')
         opt.value = `round:${p.roundId}:${p.id}`
         opt.textContent = `${p.nombre || p.alias} · ${p.cama || 'sin cama'}`
+        group.appendChild(opt)
+      })
+      select.appendChild(group)
+    }
+    if (soap.length > 0) {
+      const group = document.createElement('optgroup')
+      group.label = `Notas SOAP (${soap.length})`
+      soap.forEach(p => {
+        const opt = document.createElement('option')
+        // base64 del alias para soportar caracteres especiales (tildes, espacios)
+        const b64 = btoa(unescape(encodeURIComponent(p.alias)))
+        opt.value = `soap:${b64}`
+        opt.textContent = `${p.alias} · ${p.count} nota${p.count === 1 ? '' : 's'}`
         group.appendChild(opt)
       })
       select.appendChild(group)
@@ -145,10 +159,11 @@ async function loadPatients() {
       select.appendChild(group)
     }
 
-    if (rounds.length === 0 && recent.length === 0) {
+    const total = rounds.length + soap.length + recent.length
+    if (total === 0) {
       hint.innerHTML = 'Aún no tienes pacientes. <a href="' + API_BASE + '/dashboard" target="_blank" rel="noopener" style="color:#7c3aed">Crea uno en UrreAI →</a>'
     } else {
-      hint.textContent = `${rounds.length + recent.length} disponibles · se selecciona automáticamente al volver.`
+      hint.textContent = `${total} disponibles · se selecciona automáticamente al volver.`
     }
 
     // Recuperar seleccion previa
