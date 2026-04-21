@@ -26,15 +26,29 @@
         <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
       <h2 class="auth-card__title">Conecta tu cuenta UrreAI</h2>
-      <p class="auth-card__sub">Inicia sesión una vez para vincular la extensión con tu espacio clínico.</p>
-      <button id="connect-btn" class="btn btn--primary btn--block">
-        Conectar mi cuenta
-      </button>
-      <div id="token-input-wrap" class="token-input-wrap hidden">
-        <label class="token-input__label">Pega el código que te dimos en la página:</label>
-        <input id="token-input" class="token-input" type="text" placeholder="urreai_ext_..." autocomplete="off" spellcheck="false">
-        <button id="save-token-btn" class="btn btn--primary btn--block">Vincular extensión</button>
-        <p id="token-error" class="token-error hidden"></p>
+      <p class="auth-card__sub">Genera un código una vez en tu cuenta de UrreAI y pégalo acá para vincular la extensión.</p>
+
+      <!-- Paso 1: generar codigo -->
+      <div class="auth-step">
+        <div class="auth-step__num">1</div>
+        <div class="auth-step__body">
+          <p class="auth-step__title">Genera el código</p>
+          <button id="connect-btn" class="btn btn--secondary btn--block">
+            Abrir app.urreai.com/dashboard/extension
+          </button>
+          <p class="auth-step__hint">Se abre en una pestaña nueva. Click en &quot;Generar código&quot; y copia.</p>
+        </div>
+      </div>
+
+      <!-- Paso 2: pegar codigo (siempre visible) -->
+      <div class="auth-step">
+        <div class="auth-step__num">2</div>
+        <div class="auth-step__body">
+          <p class="auth-step__title">Pega el código aquí</p>
+          <input id="token-input" class="token-input" type="text" placeholder="urreai_ext_..." autocomplete="off" spellcheck="false">
+          <button id="save-token-btn" class="btn btn--primary btn--block">Vincular extensión</button>
+          <p id="token-error" class="token-error hidden"></p>
+        </div>
       </div>
     </div>
   </section>

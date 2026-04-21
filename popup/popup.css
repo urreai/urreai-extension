@@ -130,14 +130,45 @@ html, body {
 }
 .btn--secondary:hover { background: var(--slate-50); }
 
-.token-input-wrap { margin-top: 16px; text-align: left; }
-.token-input__label {
-  display: block;
-  font-size: 11px;
-  color: var(--slate-500);
-  margin-bottom: 6px;
-  font-weight: 600;
+.auth-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--slate-100);
+  border-radius: 10px;
+  background: #fff;
 }
+.auth-step__num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--violet));
+  color: #fff;
+  font-weight: 800;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.auth-step__body { flex: 1; min-width: 0; }
+.auth-step__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--slate-800);
+  margin-bottom: 7px;
+}
+.auth-step__hint {
+  font-size: 10px;
+  color: var(--slate-500);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
 .token-input {
   width: 100%;
   padding: 9px 12px;
@@ -145,7 +176,7 @@ html, body {
   font-family: monospace;
   border: 1.5px solid var(--slate-200);
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   outline: none;
 }
 .token-input:focus { border-color: var(--violet); }

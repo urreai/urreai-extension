@@ -54,13 +54,6 @@ function showView(name) {
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY_AWAITING = 'urreai_awaiting_token'
-
-function showPasteField() {
-  document.getElementById('token-input-wrap').classList.remove('hidden')
-  document.getElementById('connect-btn').classList.add('hidden')
-}
-
 async function tryAutoPasteFromClipboard() {
   // Si navigator.clipboard.readText está disponible y hay un token en el
   // portapapeles, autopegarlo. Ahorra un paso al usuario.
@@ -69,23 +62,20 @@ async function tryAutoPasteFromClipboard() {
     const txt = (await navigator.clipboard.readText()).trim()
     if (txt.startsWith('urreai_ext_') && txt.length >= 30) {
       const input = document.getElementById('token-input')
-      input.value = txt
-      const msg = document.createElement('p')
-      msg.className = 'token-input__label'
-      msg.style.color = '#059669'
-      msg.textContent = '✓ Código detectado en el portapapeles — solo confirma.'
-      input.parentNode.insertBefore(msg, input)
+      if (input && !input.value) {
+        input.value = txt
+        input.style.borderColor = '#10B981'
+      }
     }
   } catch { /* clipboard permission denied, ignore */ }
 }
 
 document.getElementById('connect-btn').addEventListener('click', async () => {
-  // Guardamos flag "esperando token" para que al reabrir el popup vaya
-  // directo al campo de pegar sin repetir el paso de abrir tab.
-  await storageSet(STORAGE_KEY_AWAITING, true)
-  // Abre la pagina de vinculacion en el app para generar el token
+  // Abre la página de vinculación en una pestaña nueva. El popup se
+  // cierra automáticamente (comportamiento normal del navegador). Cuando
+  // el usuario vuelva a click en el ícono, el popup abre de nuevo y ve
+  // tanto el botón como el campo para pegar listos.
   chrome.tabs.create({ url: `${API_BASE}/dashboard/extension` })
-  showPasteField()
 })
 
 document.getElementById('save-token-btn').addEventListener('click', async () => {
@@ -102,7 +92,6 @@ document.getElementById('save-token-btn').addEventListener('click', async () => 
   try {
     // Validar el token contra /api/extension/context
     await apiFetch('/api/extension/context')
-    await storageRemove(STORAGE_KEY_AWAITING)
     showView('main')
     await loadPatients()
   } catch (err) {
@@ -115,10 +104,6 @@ document.getElementById('save-token-btn').addEventListener('click', async () => 
 document.getElementById('logout-btn').addEventListener('click', async () => {
   await storageRemove(STORAGE_KEY_TOKEN)
   await storageRemove(STORAGE_KEY_PATIENT)
-  await storageRemove(STORAGE_KEY_AWAITING)
-  // Reset UI
-  document.getElementById('token-input-wrap').classList.add('hidden')
-  document.getElementById('connect-btn').classList.remove('hidden')
   document.getElementById('token-input').value = ''
   showView('auth')
 })
@@ -283,12 +268,8 @@ document.querySelectorAll('.action[data-action]').forEach(btn => {
     await loadPatients()
     return
   }
-  // Si hay un flow de vinculacion en progreso, saltarse el boton "Conectar"
-  // y llevar al usuario directo al campo de pegar token.
-  const awaiting = await storageGet(STORAGE_KEY_AWAITING)
   showView('auth')
-  if (awaiting) {
-    showPasteField()
-    await tryAutoPasteFromClipboard()
-  }
+  // Siempre intentar auto-pegar del clipboard — si el usuario acaba de
+  // copiar el código, se pega solo y solo tiene que dar "Vincular".
+  await tryAutoPasteFromClipboard()
 })()

@@ -61,26 +61,27 @@ def find_bold_font(target_size):
     return ImageFont.load_default()
 
 def make_icon(size):
-    # Gradiente fondo (con esquinas redondeadas).
+    # Gradiente fondo (con esquinas redondeadas generosas).
     bg = make_gradient(size)
-    mask = rounded_mask(size, radius=max(3, size // 5))
+    # Radio más suave (22% del lado) — moderno, no tan hard-rounded
+    mask = rounded_mask(size, radius=max(3, int(size * 0.22)))
 
     out = Image.new('RGBA', (size, size), (0, 0, 0, 0))
     out.paste(bg, (0, 0), mask)
 
-    # Letra "U" blanca centrada
+    # Letra "U" blanca centrada — 50% del alto (antes 62%, se veía muy
+    # apretada en 16x16). Padding interior más generoso.
     letter = 'U'
     draw = ImageDraw.Draw(out)
-    # La fuente debe ocupar ~60% del alto
-    font_size = int(size * 0.62)
+    font_size = int(size * 0.50)
     font = find_bold_font(font_size)
-    # Medir bbox
     bbox = draw.textbbox((0, 0), letter, font=font)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
-    # Centrar (compensar baseline)
+    # Centrar — compensar baseline (el bbox de algunas fonts tiene offset
+    # top positivo, lo restamos).
     x = (size - tw) / 2 - bbox[0]
-    y = (size - th) / 2 - bbox[1] - size * 0.02  # leve ajuste vertical
+    y = (size - th) / 2 - bbox[1] - max(1, int(size * 0.015))
     draw.text((x, y), letter, font=font, fill=(255, 255, 255, 255))
 
     return out
