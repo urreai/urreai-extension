@@ -40,6 +40,69 @@ async function getPreferences() {
  * tiene acceso a navigator.clipboard directo, inyecta un script que lo
  * ejecuta en el contexto de la página.
  */
+/**
+ * Muestra un mini-dialog en la página activa preguntando si el laboratorio
+ * debe guardarse "tal cual" (texto OCR literal) o "interpretado" (con
+ * rangos de referencia + nota clínica). Retorna 'raw' | 'interpreted' |
+ * 'cancel'. Usado solo para kind='lab' — vitals siempre va interpretado.
+ */
+async function askLabFormat() {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+    const tab = tabs[0]
+    if (!tab) return 'interpreted'
+    const [{ result }] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: async () => {
+        return await new Promise(resolve => {
+          const prev = document.getElementById('urreai-lab-format-dialog')
+          if (prev) prev.remove()
+          const root = document.createElement('div')
+          root.id = 'urreai-lab-format-dialog'
+          root.style.cssText = `
+            position:fixed;inset:0;z-index:2147483647;
+            background:rgba(15,23,42,0.55);backdrop-filter:blur(2px);
+            display:flex;align-items:center;justify-content:center;
+            font-family:-apple-system,BlinkMacSystemFont,Inter,system-ui,sans-serif;
+          `
+          root.innerHTML = `
+            <div style="background:#fff;border-radius:16px;padding:20px 22px;max-width:380px;width:90%;box-shadow:0 20px 40px -10px rgba(0,0,0,0.3);">
+              <p style="font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7c3aed;margin:0 0 6px;">UrreAI — Captura de laboratorio</p>
+              <h2 style="font-size:17px;font-weight:800;color:#0f172a;margin:0 0 4px;">¿Cómo lo guardo en la nota?</h2>
+              <p style="font-size:13px;color:#64748b;margin:0 0 16px;line-height:1.5;">Elige cómo quieres que quede este laboratorio en la historia clínica del paciente.</p>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button data-choice="interpreted" style="display:flex;flex-direction:column;gap:2px;align-items:flex-start;padding:10px 12px;border:1px solid #c4b5fd;background:#f5f3ff;border-radius:10px;cursor:pointer;text-align:left;">
+                  <span style="font-size:13px;font-weight:700;color:#5b21b6;">Interpretado</span>
+                  <span style="font-size:11px;color:#6b21a8;">Con valores de referencia + nota clínica (recomendado)</span>
+                </button>
+                <button data-choice="raw" style="display:flex;flex-direction:column;gap:2px;align-items:flex-start;padding:10px 12px;border:1px solid #cbd5e1;background:#fff;border-radius:10px;cursor:pointer;text-align:left;">
+                  <span style="font-size:13px;font-weight:700;color:#334155;">Tal cual</span>
+                  <span style="font-size:11px;color:#64748b;">Solo los valores, sin interpretación</span>
+                </button>
+                <button data-choice="cancel" style="padding:8px;border:none;background:transparent;color:#94a3b8;cursor:pointer;font-size:12px;margin-top:4px;">Cancelar</button>
+              </div>
+            </div>
+          `
+          const done = (v) => { root.remove(); resolve(v) }
+          root.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-choice]')
+            if (btn) done(btn.getAttribute('data-choice'))
+            else if (e.target === root) done('cancel')
+          })
+          document.addEventListener('keydown', function esc(e) {
+            if (e.key === 'Escape') { document.removeEventListener('keydown', esc); done('cancel') }
+          })
+          document.body.appendChild(root)
+        })
+      },
+    })
+    return result || 'interpreted'
+  } catch (err) {
+    console.warn('[UrreAI] askLabFormat injection failed, defaulting to interpreted:', err)
+    return 'interpreted'
+  }
+}
+
 async function copyToClipboardFromTab(text) {
   if (!text) return
   try {
@@ -148,6 +211,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const srcUrl = info.srcUrl
     if (!srcUrl) { notify('No se encontró la imagen.', 'error'); return }
     try {
+      // Para laboratorios, preguntar si es "tal cual" o "interpretado"
+      // ANTES de descargar y enviar. Así si el user cancela no gastamos
+      // IA en backend.
+      let labMode = null
+      if (kind === 'lab') {
+        labMode = await askLabFormat()
+        if (labMode === 'cancel') { notify('Captura cancelada.', 'ok'); return }
+      }
       // Descargar la imagen como dataURL (el service worker puede hacer fetch)
       const res = await fetch(srcUrl)
       if (!res.ok) throw new Error(`No se pudo descargar la imagen (${res.status})`)
@@ -158,12 +229,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         reader.onerror = reject
         reader.readAsDataURL(blob)
       })
-      await apiPost('/api/extension/capture', {
+      const body = {
         kind, target,
         imageDataUrl: dataUrl,
         sourceUrl: tab?.url || srcUrl,
-      })
-      notify(`Imagen enviada a UrreAI como ${kind === 'lab' ? 'laboratorio' : 'signos vitales'}.`, 'ok')
+      }
+      if (labMode) body.labMode = labMode
+      await apiPost('/api/extension/capture', body)
+      notify(`Imagen enviada a UrreAI como ${kind === 'lab' ? `laboratorio (${labMode === 'raw' ? 'tal cual' : 'interpretado'})` : 'signos vitales'}.`, 'ok')
     } catch (err) { notify(err.message || 'Error procesando imagen.', 'error') }
     return
   }
@@ -329,16 +402,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // Recortar la region seleccionada usando un OffscreenCanvas
         const croppedDataUrl = await cropImage(dataUrl, region)
 
+        // Para laboratorios, preguntar si es "tal cual" o "interpretado"
+        let labMode = null
+        if (ctx.captureType === 'lab') {
+          labMode = await askLabFormat()
+          if (labMode === 'cancel') {
+            await chrome.storage.local.remove(['urreai_capture'])
+            sendResponse({ ok: true, cancelled: true })
+            return
+          }
+        }
+
         // Subir al backend
-        const response = await apiPost('/api/extension/capture', {
+        const body = {
           kind: ctx.captureType,  // 'lab' | 'vital'
           target: ctx.target,
           imageDataUrl: croppedDataUrl,
           sourceUrl: tab.url,
-        })
+        }
+        if (labMode) body.labMode = labMode
+        const response = await apiPost('/api/extension/capture', body)
 
         await chrome.storage.local.remove(['urreai_capture'])
-        sendResponse({ ok: true, data: response.data })
+        sendResponse({ ok: true, data: response.data, labMode })
       } catch (err) {
         sendResponse({ error: err.message || String(err) })
       }
