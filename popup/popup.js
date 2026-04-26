@@ -8,10 +8,12 @@ const STORAGE_KEY_PREFS = 'urreai_prefs'
 const DEFAULT_PREFS = {
   fieldLab: 'objetivo',
   fieldVital: 'objetivo',
+  fieldImaging: 'objetivo',
   fieldNote: 'subjetivo',
   appendToToday: true,
   formatLab: '',
   formatVital: '',
+  formatImaging: '',
   saveMode: 'save',  // 'save' | 'clipboard' | 'both'
 }
 
@@ -86,9 +88,11 @@ async function loadPrefsIntoForm() {
   const prefs = { ...DEFAULT_PREFS, ...(saved || {}) }
   document.getElementById('field-lab').value = prefs.fieldLab
   document.getElementById('field-vital').value = prefs.fieldVital
+  document.getElementById('field-imaging').value = prefs.fieldImaging
   document.getElementById('field-note').value = prefs.fieldNote
   document.getElementById('format-lab').value = prefs.formatLab
   document.getElementById('format-vital').value = prefs.formatVital
+  document.getElementById('format-imaging').value = prefs.formatImaging
   document.getElementById('append-true').checked = prefs.appendToToday
   document.getElementById('append-false').checked = !prefs.appendToToday
   const modeEl = document.getElementById(`mode-${prefs.saveMode}`)
@@ -101,9 +105,11 @@ async function savePrefs() {
   const prefs = {
     fieldLab: document.getElementById('field-lab').value,
     fieldVital: document.getElementById('field-vital').value,
+    fieldImaging: document.getElementById('field-imaging').value,
     fieldNote: document.getElementById('field-note').value,
     formatLab: document.getElementById('format-lab').value.trim(),
     formatVital: document.getElementById('format-vital').value.trim(),
+    formatImaging: document.getElementById('format-imaging').value.trim(),
     appendToToday: document.getElementById('append-true').checked,
     saveMode: modeInput ? modeInput.value : 'save',
   }
@@ -333,9 +339,12 @@ document.querySelectorAll('.action[data-action]').forEach(btn => {
       return
     }
 
-    if (action === 'capture-lab' || action === 'capture-vitals') {
+    if (action === 'capture-lab' || action === 'capture-vitals' || action === 'capture-imaging') {
       // Pedir al background que inyecte el overlay en el tab activo
-      const captureType = action === 'capture-lab' ? 'lab' : 'vital'
+      const captureType =
+        action === 'capture-lab'     ? 'lab' :
+        action === 'capture-imaging' ? 'imaging' :
+        'vital'
       chrome.runtime.sendMessage({ type: 'START_CAPTURE', captureType, target }, response => {
         if (response?.error) showFeedback('err', response.error)
         else {

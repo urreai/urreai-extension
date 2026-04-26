@@ -27,10 +27,12 @@ async function getPreferences() {
   return {
     fieldLab:       prefs?.fieldLab       ?? 'objetivo',
     fieldVital:     prefs?.fieldVital     ?? 'objetivo',
+    fieldImaging:   prefs?.fieldImaging   ?? 'objetivo',
     fieldNote:      prefs?.fieldNote      ?? 'subjetivo',
     appendToToday:  prefs?.appendToToday  !== false, // default true
     formatLab:      prefs?.formatLab      ?? '',
     formatVital:    prefs?.formatVital    ?? '',
+    formatImaging:  prefs?.formatImaging  ?? '',
     saveMode:       prefs?.saveMode       ?? 'save',  // 'save' | 'clipboard' | 'both'
   }
 }
@@ -139,13 +141,18 @@ async function apiPost(path, body) {
     const prefs = await getPreferences()
     if (!('field' in body)) {
       body.field =
-        body.kind === 'lab'   ? prefs.fieldLab :
-        body.kind === 'vital' ? prefs.fieldVital :
+        body.kind === 'lab'     ? prefs.fieldLab :
+        body.kind === 'vital'   ? prefs.fieldVital :
+        body.kind === 'imaging' ? prefs.fieldImaging :
         prefs.fieldNote
     }
     if (!('appendToTodayNote' in body)) body.appendToTodayNote = prefs.appendToToday
     if (!('format' in body) && body.kind) {
-      body.format = body.kind === 'lab' ? prefs.formatLab : body.kind === 'vital' ? prefs.formatVital : ''
+      body.format =
+        body.kind === 'lab'     ? prefs.formatLab :
+        body.kind === 'vital'   ? prefs.formatVital :
+        body.kind === 'imaging' ? prefs.formatImaging :
+        ''
     }
     if (!('saveMode' in body)) body.saveMode = prefs.saveMode
   }
@@ -187,6 +194,11 @@ chrome.runtime.onInstalled.addListener(() => {
     title: 'UrreAI: Capturar imagen como signo vital',
     contexts: ['image'],
   })
+  chrome.contextMenus.create({
+    id: 'urreai-capture-image-imaging',
+    title: 'UrreAI: Capturar imagen como reporte de imagen',
+    contexts: ['image'],
+  })
 })
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
@@ -204,10 +216,17 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     return
   }
 
-  // Capturar imagen directa (sin selector de region) como lab o vital
-  if (info.menuItemId === 'urreai-capture-image-lab' || info.menuItemId === 'urreai-capture-image-vital') {
+  // Capturar imagen directa (sin selector de region) como lab, vital o imaging
+  if (
+    info.menuItemId === 'urreai-capture-image-lab' ||
+    info.menuItemId === 'urreai-capture-image-vital' ||
+    info.menuItemId === 'urreai-capture-image-imaging'
+  ) {
     if (!target) { notify('Primero selecciona un paciente en la extensión.', 'error'); return }
-    const kind = info.menuItemId === 'urreai-capture-image-lab' ? 'lab' : 'vital'
+    const kind =
+      info.menuItemId === 'urreai-capture-image-lab'     ? 'lab' :
+      info.menuItemId === 'urreai-capture-image-imaging' ? 'imaging' :
+      'vital'
     const srcUrl = info.srcUrl
     if (!srcUrl) { notify('No se encontró la imagen.', 'error'); return }
     try {
@@ -236,7 +255,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       }
       if (labMode) body.labMode = labMode
       await apiPost('/api/extension/capture', body)
-      notify(`Imagen enviada a UrreAI como ${kind === 'lab' ? `laboratorio (${labMode === 'raw' ? 'tal cual' : 'interpretado'})` : 'signos vitales'}.`, 'ok')
+      const label =
+        kind === 'lab'     ? `laboratorio (${labMode === 'raw' ? 'tal cual' : 'interpretado'})` :
+        kind === 'imaging' ? 'reporte de imagen' :
+        'signos vitales'
+      notify(`Imagen enviada a UrreAI como ${label}.`, 'ok')
     } catch (err) { notify(err.message || 'Error procesando imagen.', 'error') }
     return
   }
@@ -312,8 +335,11 @@ function escXml(s) {
 // pestaña activa, sin necesidad de abrir el popup.
 
 chrome.commands.onCommand.addListener(async (command) => {
-  if (command !== 'capture-lab' && command !== 'capture-vital') return
-  const captureType = command === 'capture-lab' ? 'lab' : 'vital'
+  if (command !== 'capture-lab' && command !== 'capture-vital' && command !== 'capture-imaging') return
+  const captureType =
+    command === 'capture-lab'     ? 'lab' :
+    command === 'capture-imaging' ? 'imaging' :
+    'vital'
 
   const target = await getActivePatient()
   if (!target) {

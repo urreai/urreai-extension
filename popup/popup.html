@@ -85,6 +85,16 @@
       </div>
 
       <div class="settings-group">
+        <label class="settings-label" for="field-imaging">Campo para reportes de imagen</label>
+        <select id="field-imaging" class="settings-select">
+          <option value="subjetivo">Subjetivo (S)</option>
+          <option value="objetivo">Objetivo (O)</option>
+          <option value="analisis">Análisis (A)</option>
+          <option value="plan">Plan (P)</option>
+        </select>
+      </div>
+
+      <div class="settings-group">
         <label class="settings-label" for="field-note">Campo para texto seleccionado</label>
         <select id="field-note" class="settings-select">
           <option value="subjetivo">Subjetivo (S)</option>
@@ -105,11 +115,17 @@
         <textarea id="format-vital" class="settings-textarea" placeholder="Ej: SV: {content}" rows="2"></textarea>
       </div>
 
+      <div class="settings-group">
+        <label class="settings-label" for="format-imaging">Formato custom reporte de imagen <span class="settings-label-hint">(opcional)</span></label>
+        <textarea id="format-imaging" class="settings-textarea" placeholder="Ej: === IMAGENOLOGÍA ===&#10;{content}&#10;" rows="3"></textarea>
+      </div>
+
       <div class="settings-group settings-group--kbd">
         <label class="settings-label">Atajos de teclado</label>
         <div class="kbd-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd><span>Abrir popup</span></div>
         <div class="kbd-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd><span>Capturar laboratorio</span></div>
         <div class="kbd-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd><span>Capturar signos vitales</span></div>
+        <div class="kbd-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd><span>Capturar reporte de imagen</span></div>
         <button type="button" id="open-shortcuts" class="settings-link-btn">Personalizar atajos →</button>
       </div>
     </div>
@@ -241,6 +257,16 @@
         <div class="action__text">
           <p class="action__title">Capturar signos vitales</p>
           <p class="action__sub">TA, FC, FR, T°, SatO2 desde pantalla</p>
+        </div>
+      </button>
+
+      <button class="action" data-action="capture-imaging" disabled>
+        <div class="action__icon action__icon--violet">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </div>
+        <div class="action__text">
+          <p class="action__title">Capturar reporte de imagen</p>
+          <p class="action__sub">RX, ecografía, TAC, RM — IA estructura el informe</p>
         </div>
       </button>
 

@@ -8,6 +8,7 @@ Extensión de navegador que trae las acciones clínicas clave de UrreAI a **cual
 |---|---|
 | **Capturar laboratorios** | Seleccionas una región de la pantalla (tabla de labs) → IA la estructura → queda en el paciente activo |
 | **Capturar signos vitales** | Igual pero para TA / FC / FR / T° / SatO2 |
+| **Capturar reporte de imagen** | RX, ecografía, TAC, RM, mamografía → IA extrae técnica, hallazgos, impresión y recomendaciones |
 | **Guardar selección como nota** | Seleccionas texto en cualquier web → click derecho o botón → queda como nota del paciente |
 | **Calculadoras** | Atajo a las 205 calculadoras de UrreAI |
 

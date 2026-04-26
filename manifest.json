@@ -3,7 +3,7 @@
   "name": "UrreAI — Captura clínica",
   "short_name": "UrreAI",
   "version": "0.1.0",
-  "description": "Captura laboratorios, signos vitales y notas directo al paciente en UrreAI sin cambiar de pestaña.",
+  "description": "Captura laboratorios, signos vitales, reportes de imágenes y notas directo al paciente en UrreAI sin cambiar de pestaña.",
   "author": "UrreAI",
   "homepage_url": "https://urreai.com",
 
@@ -40,6 +40,13 @@
         "mac": "Command+Shift+I"
       },
       "description": "Capturar signos vitales (región de la pantalla)"
+    },
+    "capture-imaging": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+R",
+        "mac": "Command+Shift+R"
+      },
+      "description": "Capturar reporte de imagen (región de la pantalla)"
     }
   },
 
