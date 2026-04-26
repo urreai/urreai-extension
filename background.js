@@ -269,41 +269,49 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 chrome.omnibox.onInputChanged.addListener((text, suggest) => {
   const q = (text || '').trim()
-  // Lista curada de sugerencias según lo que escriba el usuario
+  // Lista curada de sugerencias. El campo `q` debe coincidir con un tag o
+  // substring del nombre en CALCULATORS de
+  // urreai-app/src/app/(dashboard)/dashboard/calculators/page.tsx
+  // (el filtro de la app hace `tags.some(t => t.includes(q.toLowerCase()))`).
+  // Si cambias un tag en la app, actualiza también esta lista.
   const allCalcs = [
-    { name: 'Glasgow Coma Scale', slug: 'glasgow' },
-    { name: 'CURB-65 (Neumonía)', slug: 'curb-65' },
-    { name: 'qSOFA (Sepsis)', slug: 'qsofa' },
-    { name: 'SOFA', slug: 'sofa' },
-    { name: 'Apgar (Recién nacido)', slug: 'apgar' },
-    { name: 'Wells DVT', slug: 'wells-dvt' },
-    { name: 'Wells TEP', slug: 'wells-tep' },
-    { name: 'TFG (CKD-EPI)', slug: 'tfg-ckd-epi' },
-    { name: 'IMC / BMI', slug: 'imc' },
-    { name: 'Dosis Pediátrica por peso', slug: 'dosis-peds' },
-    { name: 'CHA₂DS₂-VASc', slug: 'cha2ds2-vasc' },
-    { name: 'HAS-BLED', slug: 'has-bled' },
-    { name: 'Bristol (Heces)', slug: 'bristol' },
-    { name: 'PEWS (Pediatric Early Warning)', slug: 'pews' },
-    { name: 'Z-scores OMS (Peso/Talla)', slug: 'z-scores' },
-    { name: 'NIHSS (ACV)', slug: 'nihss' },
-    { name: 'Índice Shock', slug: 'indice-shock' },
+    { name: 'Glasgow Coma Scale', q: 'glasgow' },
+    { name: 'CURB-65 (Neumonía)', q: 'curb65' },
+    { name: 'qSOFA (Sepsis)', q: 'qsofa' },
+    { name: 'SOFA', q: 'sofa' },
+    { name: 'Apgar (Recién nacido)', q: 'apgar' },
+    { name: 'Wells TVP', q: 'wells' },
+    { name: 'PERC Rule (descarte TEP)', q: 'perc' },
+    { name: 'TFG (CKD-EPI)', q: 'tfg' },
+    { name: 'IMC / BMI', q: 'imc' },
+    { name: 'Dosis Pediátrica por peso', q: 'dosis' },
+    { name: 'CHA₂DS₂-VASc', q: 'chads' },
+    { name: 'HAS-BLED', q: 'hasbled' },
+    { name: 'PEWS (Pediatric Early Warning)', q: 'pews' },
+    { name: 'Z-score OMS (Peso/Talla)', q: 'zscore' },
+    { name: 'NIHSS (ACV)', q: 'nihss' },
+    { name: 'PAM (Presión Arterial Media)', q: 'pam' },
   ]
   const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   const qNorm = norm(q)
   const matches = qNorm
-    ? allCalcs.filter(c => norm(c.name).includes(qNorm) || norm(c.slug).includes(qNorm))
+    ? allCalcs.filter(c => norm(c.name).includes(qNorm) || norm(c.q).includes(qNorm))
     : allCalcs.slice(0, 6)
 
   const suggestions = matches.slice(0, 8).map(c => ({
-    content: c.name,
+    // content: lo que se envía a onInputEntered al seleccionar la sugerencia.
+    // Usamos un prefijo "__calc__" + el query corto, así onInputEntered sabe
+    // que es un calc preseleccionado y manda el query corto (que SÍ matchea
+    // con los tags de la app). Antes mandaba el name completo, que no
+    // matcheaba ningún tag y mostraba lista vacía.
+    content: `__calc__${c.q}`,
     description: `<match>${escXml(c.name)}</match> <dim>— abrir en UrreAI</dim>`,
   }))
-  // Opcion extra: abrir página completa con búsqueda
+  // Opcion extra: abrir página completa con búsqueda libre
   if (q) {
     suggestions.push({
       content: `__search__${q}`,
-      description: `Buscar <match>${escXml(q)}</match> en todas las 205 calculadoras`,
+      description: `Buscar <match>${escXml(q)}</match> en todas las calculadoras`,
     })
   }
   suggest(suggestions)
@@ -311,11 +319,14 @@ chrome.omnibox.onInputChanged.addListener((text, suggest) => {
 
 chrome.omnibox.onInputEntered.addListener((input) => {
   let url
-  if (input.startsWith('__search__')) {
-    const q = input.slice(10)
+  if (input.startsWith('__calc__')) {
+    const q = input.slice('__calc__'.length)
+    url = `${API_BASE}/dashboard/calculators?q=${encodeURIComponent(q)}`
+  } else if (input.startsWith('__search__')) {
+    const q = input.slice('__search__'.length)
     url = `${API_BASE}/dashboard/calculators?q=${encodeURIComponent(q)}`
   } else {
-    // Usa el texto como query contra la calculadoras
+    // Texto libre escrito por el usuario sin seleccionar sugerencia.
     url = `${API_BASE}/dashboard/calculators?q=${encodeURIComponent(input)}`
   }
   chrome.tabs.create({ url })

@@ -400,19 +400,24 @@ document.querySelectorAll('.action[data-action]').forEach(btn => {
 
 // ─── Populate popular calculators grid ───────────────────────────────────
 
+// Los `q` deben coincidir con name/description/tags de CALCULATORS en
+// urreai-app/src/app/(dashboard)/dashboard/calculators/page.tsx — el filtro
+// de la app hace `tags.some(t => t.includes(q.toLowerCase()))` así que el
+// query tiene que coincidir LITERAL con un tag o substring del nombre.
+// Si cambias un tag en la app, actualiza también este array.
 const POPULAR_CALCS = [
-  { name: 'Glasgow',       q: 'glasgow',         color: '#3B82F6' },
-  { name: 'CURB-65',       q: 'curb-65',         color: '#10B981' },
-  { name: 'qSOFA',         q: 'qsofa',           color: '#EF4444' },
-  { name: 'Apgar',         q: 'apgar',           color: '#F59E0B' },
-  { name: 'IMC / BMI',     q: 'imc',             color: '#8B5CF6' },
-  { name: 'TFG CKD-EPI',   q: 'tfg',             color: '#06B6D4' },
-  { name: 'Dosis peds',    q: 'dosis pediátrica', color: '#EC4899' },
-  { name: 'Wells TEP',     q: 'wells tep',       color: '#0EA5E9' },
-  { name: 'CHA₂DS₂-VASc',  q: 'chads',           color: '#DC2626' },
-  { name: 'Z-scores OMS',  q: 'z-score',         color: '#059669' },
-  { name: 'NIHSS',         q: 'nihss',           color: '#7C3AED' },
-  { name: 'PEWS',          q: 'pews',            color: '#F97316' },
+  { name: 'Glasgow',       q: 'glasgow',  color: '#3B82F6' },
+  { name: 'CURB-65',       q: 'curb65',   color: '#10B981' },
+  { name: 'qSOFA',         q: 'qsofa',    color: '#EF4444' },
+  { name: 'Apgar',         q: 'apgar',    color: '#F59E0B' },
+  { name: 'IMC / BMI',     q: 'imc',      color: '#8B5CF6' },
+  { name: 'TFG CKD-EPI',   q: 'tfg',      color: '#06B6D4' },
+  { name: 'Dosis peds',    q: 'dosis',    color: '#EC4899' },
+  { name: 'PERC TEP',      q: 'perc',     color: '#0EA5E9' },
+  { name: 'CHA₂DS₂-VASc',  q: 'chads',    color: '#DC2626' },
+  { name: 'Z-score OMS',   q: 'zscore',   color: '#059669' },
+  { name: 'NIHSS',         q: 'nihss',    color: '#7C3AED' },
+  { name: 'PEWS',          q: 'pews',     color: '#F97316' },
 ]
 
 function renderCalcGrid() {
