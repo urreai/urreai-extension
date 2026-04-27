@@ -75,14 +75,6 @@
     "service_worker": "background.js"
   },
 
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content/enable-paste.js"],
-      "run_at": "document_end"
-    }
-  ],
-
   "web_accessible_resources": [
     {
       "resources": ["content/capture-overlay.css"],

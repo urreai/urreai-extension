@@ -451,3 +451,52 @@ function renderCalcGrid() {
   // copiar el código, se pega solo y solo tiene que dar "Vincular".
   await tryAutoPasteFromClipboard()
 })()
+
+// ─── Habilitar pegado en la pestaña activa ─────────────────────────────────
+// Inyecta el script SOLO en la pestaña actual y SOLO cuando el usuario
+// hace clic en el botón — no se auto-inyecta en ninguna página.
+
+function pasteEnabler() {
+  // Esta función se serializa y se ejecuta en el contexto de la pestaña
+  if (window.__urreaiPasteEnabled) return
+  window.__urreaiPasteEnabled = true
+  document.addEventListener('paste', function (e) {
+    var el = e.target
+    if (!el) return
+    var isInput = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+    var isEditable = el.isContentEditable || el.getAttribute('contenteditable') === 'true'
+    if (!isInput && !isEditable) return
+    var cd = e.clipboardData || window.clipboardData
+    var text = cd ? cd.getData('text/plain') : ''
+    e.stopImmediatePropagation()
+    e.preventDefault()
+    if (!text) return
+    if (isInput) {
+      var s = typeof el.selectionStart === 'number' ? el.selectionStart : el.value.length
+      var end = typeof el.selectionEnd === 'number' ? el.selectionEnd : el.value.length
+      el.value = el.value.slice(0, s) + text + el.value.slice(end)
+      el.selectionStart = el.selectionEnd = s + text.length
+      el.dispatchEvent(new Event('input',  { bubbles: true }))
+      el.dispatchEvent(new Event('change', { bubbles: true }))
+    } else {
+      document.execCommand('insertText', false, text)
+    }
+  }, true)
+}
+
+document.getElementById('btn-enable-paste')?.addEventListener('click', async () => {
+  const btn = document.getElementById('btn-enable-paste')
+  const lbl = document.getElementById('btn-enable-paste-label')
+  if (!btn || !lbl) return
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!tab?.id) return
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: pasteEnabler })
+    btn.style.background = '#dcfce7'
+    btn.style.borderColor = '#4ade80'
+    lbl.textContent = '✓ Pegado habilitado en esta página'
+    setTimeout(() => window.close(), 800)
+  } catch {
+    lbl.textContent = 'Error — recarga la página e intenta de nuevo'
+  }
+})
