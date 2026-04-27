@@ -1,48 +1,42 @@
 /* UrreAI — fuerza pegado en campos bloqueados por JS */
-/* Estrategia: intercepta Ctrl+V en captura e inserta el texto directamente
-   sin disparar el evento paste, evitando los listeners que lo bloquean. */
 
 (function () {
   if (window.__urreaiPasteEnabled) return
   window.__urreaiPasteEnabled = true
 
-  document.addEventListener('keydown', function (e) {
-    // Solo Ctrl+V (Windows/Linux) o Cmd+V (Mac)
-    if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'v') return
-    if (e.shiftKey || e.altKey) return
-
-    const el = document.activeElement
+  document.addEventListener('paste', function (e) {
+    var el = e.target
     if (!el) return
 
-    const isInput = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
-    const isEditable = el.isContentEditable || el.getAttribute('contenteditable') === 'true'
+    var isInput = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+    var isEditable = el.isContentEditable || el.getAttribute('contenteditable') === 'true'
     if (!isInput && !isEditable) return
 
-    // Leer el portapapeles antes de cancelar el evento nativo
-    navigator.clipboard.readText().then(function (text) {
-      if (!text) return
+    // Leer el texto del portapapeles SINCRÓNICAMENTE desde el evento
+    var text = (e.clipboardData || window.clipboardData || {getData: function(){return ''}}).getData('text/plain')
 
-      if (isInput) {
-        const input = /** @type {HTMLInputElement|HTMLTextAreaElement} */ (el)
-        const start = input.selectionStart ?? input.value.length
-        const end   = input.selectionEnd   ?? input.value.length
-        input.value = input.value.slice(0, start) + text + input.value.slice(end)
-        input.selectionStart = input.selectionEnd = start + text.length
-        // Notificar al framework (React, Vue, jQuery) del cambio
-        input.dispatchEvent(new Event('input',  { bubbles: true }))
-        input.dispatchEvent(new Event('change', { bubbles: true }))
-      } else {
-        // Campo contenteditable (ej: rich-text editor)
-        document.execCommand('insertText', false, text)
-      }
-    }).catch(function () {
-      // Sin permiso de portapapeles — dejar que el navegador maneje el paste normal
-    })
-
-    // Cancelar el evento nativo para que el navegador no dispare
-    // el evento 'paste' que el sitio bloquea
-    e.preventDefault()
+    // Bloquear todos los handlers del sitio Y el paste nativo del navegador
     e.stopImmediatePropagation()
+    e.preventDefault()
 
-  }, true /* captura: antes de cualquier listener del sitio */)
+    if (!text) return
+
+    // Insertar manualmente en input/textarea
+    if (isInput) {
+      var start = typeof el.selectionStart === 'number' ? el.selectionStart : el.value.length
+      var end   = typeof el.selectionEnd   === 'number' ? el.selectionEnd   : el.value.length
+      el.value = el.value.slice(0, start) + text + el.value.slice(end)
+      el.selectionStart = el.selectionEnd = start + text.length
+      el.dispatchEvent(new Event('input',  {bubbles: true}))
+      el.dispatchEvent(new Event('change', {bubbles: true}))
+      return
+    }
+
+    // Insertar en contenteditable
+    if (document.queryCommandSupported && document.queryCommandSupported('insertText')) {
+      document.execCommand('insertText', false, text)
+    }
+
+  }, true /* captura: se ejecuta ANTES que cualquier listener del sitio */)
+
 })()
