@@ -161,6 +161,11 @@ async function tryAutoPasteFromClipboard() {
   } catch { /* clipboard permission denied, ignore */ }
 }
 
+// Botón prominente — abre login para quien no tiene sesión o es nuevo
+document.getElementById('open-app-login-btn').addEventListener('click', () => {
+  chrome.tabs.create({ url: `${API_BASE}/login?from=extension` })
+})
+
 document.getElementById('connect-btn').addEventListener('click', async () => {
   // Abre la página de vinculación en una pestaña nueva. El popup se
   // cierra automáticamente (comportamiento normal del navegador). Cuando
@@ -468,19 +473,3 @@ function pasteEnabler() {
   document.addEventListener('cut',   function (e) { e.stopImmediatePropagation() }, true)
 }
 
-document.getElementById('btn-enable-paste')?.addEventListener('click', async () => {
-  const btn = document.getElementById('btn-enable-paste')
-  const lbl = document.getElementById('btn-enable-paste-label')
-  if (!btn || !lbl) return
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    if (!tab?.id) return
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: pasteEnabler })
-    btn.style.background = '#dcfce7'
-    btn.style.borderColor = '#4ade80'
-    lbl.textContent = '✓ Pegado habilitado en esta página'
-    setTimeout(() => window.close(), 800)
-  } catch {
-    lbl.textContent = 'Error — recarga la página e intenta de nuevo'
-  }
-})

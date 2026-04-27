@@ -177,7 +177,17 @@ async function apiPost(path, body) {
 
 // ─── Context menus ─────────────────────────────────────────────────────────
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
+  // Primera instalación: abrir la app para que el usuario haga login
+  if (details.reason === 'install') {
+    chrome.tabs.create({
+      url: 'https://app.urreai.com/login?from=extension&welcome=1'
+    })
+  } else if (details.reason === 'update') {
+    // Actualización silenciosa — solo log
+    console.log('[UrreAI Extension] Actualizado a', chrome.runtime.getManifest().version)
+  }
+
   try { chrome.contextMenus.removeAll() } catch {}
   // Menu al seleccionar texto
   chrome.contextMenus.create({
