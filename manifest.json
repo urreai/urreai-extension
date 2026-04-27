@@ -79,7 +79,7 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content/enable-paste.js"],
-      "run_at": "document_start"
+      "run_at": "document_end"
     }
   ],
 
