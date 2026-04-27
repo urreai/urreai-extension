@@ -457,31 +457,15 @@ function renderCalcGrid() {
 // hace clic en el botón — no se auto-inyecta en ninguna página.
 
 function pasteEnabler() {
-  // Esta función se serializa y se ejecuta en el contexto de la pestaña
+  // Técnica "Don't F**k With Paste": intercepta en capture phase antes que
+  // cualquier handler del sitio y llama stopImmediatePropagation() para que
+  // ningún handler de la página pueda llamar preventDefault() y bloquear el
+  // pegado. El navegador ejecuta el paste nativo normalmente.
   if (window.__urreaiPasteEnabled) return
   window.__urreaiPasteEnabled = true
-  document.addEventListener('paste', function (e) {
-    var el = e.target
-    if (!el) return
-    var isInput = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
-    var isEditable = el.isContentEditable || el.getAttribute('contenteditable') === 'true'
-    if (!isInput && !isEditable) return
-    var cd = e.clipboardData || window.clipboardData
-    var text = cd ? cd.getData('text/plain') : ''
-    e.stopImmediatePropagation()
-    e.preventDefault()
-    if (!text) return
-    if (isInput) {
-      var s = typeof el.selectionStart === 'number' ? el.selectionStart : el.value.length
-      var end = typeof el.selectionEnd === 'number' ? el.selectionEnd : el.value.length
-      el.value = el.value.slice(0, s) + text + el.value.slice(end)
-      el.selectionStart = el.selectionEnd = s + text.length
-      el.dispatchEvent(new Event('input',  { bubbles: true }))
-      el.dispatchEvent(new Event('change', { bubbles: true }))
-    } else {
-      document.execCommand('insertText', false, text)
-    }
-  }, true)
+  document.addEventListener('paste', function (e) { e.stopImmediatePropagation() }, true)
+  document.addEventListener('copy',  function (e) { e.stopImmediatePropagation() }, true)
+  document.addEventListener('cut',   function (e) { e.stopImmediatePropagation() }, true)
 }
 
 document.getElementById('btn-enable-paste')?.addEventListener('click', async () => {

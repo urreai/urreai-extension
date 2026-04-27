@@ -94,6 +94,7 @@ async function askLabFormat() {
           document.addEventListener('keydown', function esc(e) {
             if (e.key === 'Escape') { document.removeEventListener('keydown', esc); done('cancel') }
           })
+          if (!document.body) { resolve('interpreted'); return }
           document.body.appendChild(root)
         })
       },
@@ -122,6 +123,7 @@ async function copyToClipboardFromTab(text) {
           const ta = document.createElement('textarea')
           ta.value = txt
           ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;'
+          if (!document.body) return
           document.body.appendChild(ta)
           ta.select()
           try { document.execCommand('copy') } catch {}
