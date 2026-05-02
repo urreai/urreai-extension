@@ -53,17 +53,7 @@
 
   "host_permissions": [
     "https://app.urreai.com/*",
-    "http://localhost:3000/*",
-    "<all_urls>"
-  ],
-
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content/enable-paste.js"],
-      "run_at": "document_start",
-      "all_frames": true
-    }
+    "http://localhost:3000/*"
   ],
 
   "action": {
