@@ -1,5 +1,14 @@
 # UrreAI — Extensión Chrome / Firefox
 
+![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
+![License: MIT](https://img.shields.io/badge/License-MIT-green)
+![Chrome](https://img.shields.io/badge/Chrome-109%2B-yellow)
+![Firefox](https://img.shields.io/badge/Firefox-109%2B-orange)
+
+> **EN:** Browser extension (Manifest V3, Chrome & Firefox) that brings UrreAI's clinical
+> capture actions — labs, vital signs, imaging reports and notes — into any browser tab,
+> sending them straight to the active patient without switching windows.
+
 Extensión de navegador que trae las acciones clínicas clave de UrreAI a **cualquier pestaña** — sistema del hospital, laboratorios, UpToDate, etc. — sin cambiar de ventana.
 
 ## Qué hace
@@ -74,6 +83,16 @@ Funciona con el mismo paciente activo tanto en **ronda hospitalaria** (estudiant
 Edita los archivos directamente. En Chrome, recarga la extensión desde `chrome://extensions/` (botón de refresh en el card). En Firefox, recarga desde `about:debugging`.
 
 El popup abre en la ventana del ícono; puedes inspeccionarlo con click derecho → "Inspeccionar popup". El background service worker se inspecciona desde `chrome://extensions/` → "vista de fondo".
+
+## Contribuir
+
+Las contribuciones son bienvenidas. Para cambios grandes, abre primero un *issue* para discutir qué te gustaría modificar. Ver [`CONTRIBUTING.md`](CONTRIBUTING.md) para el flujo de trabajo y la convención de commits.
+
+Reportes de seguridad: ver [`SECURITY.md`](SECURITY.md).
+
+## Licencia
+
+Distribuido bajo licencia **MIT**. Ver [`LICENSE`](LICENSE) para el texto completo.
 
 ---
 
