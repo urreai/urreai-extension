@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    name: Validate manifest & lint extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate manifest.json
+        run: node -e "const m=require('./manifest.json');const req=['manifest_version','name','version','background','action'];const miss=req.filter(k=>!(k in m));if(miss.length){console.error('Missing manifest keys:',miss.join(', '));process.exit(1)}if(m.manifest_version!==3){console.error('Expected Manifest V3');process.exit(1)}console.log('manifest.json OK —',m.name,m.version)"
+
+      - name: web-ext lint (informational)
+        continue-on-error: true
+        run: npx --yes web-ext lint --source-dir . --self-hosted

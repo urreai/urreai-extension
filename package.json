@@ -1,0 +1,24 @@
+{
+  "name": "urreai-extension",
+  "version": "0.1.0",
+  "description": "Browser extension (Manifest V3, Chrome & Firefox) to capture labs, vital signs, imaging reports and clinical notes straight to the active patient in UrreAI.",
+  "private": true,
+  "homepage": "https://urreai.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/urreai/urreai-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/urreai/urreai-extension/issues"
+  },
+  "author": "Juan David Urrea Ospina (UrreAI)",
+  "license": "MIT",
+  "scripts": {
+    "lint": "web-ext lint",
+    "start:firefox": "web-ext run",
+    "build": "web-ext build --artifacts-dir dist"
+  },
+  "devDependencies": {
+    "web-ext": "^8.0.0"
+  }
+}

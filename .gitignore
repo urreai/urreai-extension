@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+web-ext-artifacts/
+*.zip
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
