@@ -9,8 +9,9 @@ Se publica en <https://addons.mozilla.org/developers/>, sin costo. El paquete sa
 
 **Resumen** (250 caracteres como máximo):
 
-> Lo que lees en rotación, a UrreAI: pregúntalo al chat de evidencia, hazlo flashcard o captura
-> los laboratorios de un paciente de tu ronda. Para estudiantes de medicina con cuenta de UrreAI.
+> Haz flashcards sin salir de la página, busca entre las 185 calculadoras de UrreAI, pregúntale al
+> chat de evidencia y captura los laboratorios de un paciente de tu ronda. Para estudiantes de
+> medicina con cuenta de UrreAI.
 
 **Descripción:** la misma de `chrome-web-store.md`.
 
@@ -34,4 +35,8 @@ Firefox las enseña al instalar y pide el consentimiento.
 - Sin código minificado ni generado: el paquete es el código fuente tal cual.
 - `background.service_worker` es para Chrome; Firefox usa `background.scripts`. El aviso de
   `web-ext lint` sobre el service worker es esperado.
+- El panel lateral es `sidebar_action` en Firefox y `side_panel` en Chrome. Los avisos de
+  `web-ext lint` sobre el permiso `sidePanel` y la API `sidePanel.open` son esperados: el código
+  solo la llama si existe (`chrome.sidePanel && chrome.sidePanel.open`) y en Firefox usa
+  `browser.sidebarAction.open`.
 - Se necesita una cuenta de UrreAI: escribir a contacto@urreai.com y se entrega una de prueba.

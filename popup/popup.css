@@ -1,15 +1,18 @@
-/* UrreAI — el popup, con el lenguaje de la app: la banda verde con su franja,
-   tarjetas con borde de 2 px y franja de 4 px abajo, iconos en baldosa verde.
-   Nada de degradados, violetas ni emojis, que es lo que tenía la 0.1. */
+/* UrreAI — el popup, el panel lateral y la ventana de la flashcard, con el
+   lenguaje de la app: la banda verde con su franja, tarjetas con borde de
+   2 px y franja de 4 px abajo, iconos en baldosa verde. Nada de degradados,
+   violetas ni emojis, que es lo que tenía la 0.1. */
 
 :root {
   --verde: #047857;       /* acento: blanco encima da 5,48:1 */
   --verde-franja: #065F46;
+  --verde-hondo: #064E3B;
   --verde-claro: #D1FAE5;
+  --verde-suave: #F0FDF4;
+  --verde-borde: #A7F3D0;
   --verde-texto: #065F46;
   --tinta: #0F172A;
   --gris: #475569;        /* texto secundario: 7,6:1 sobre blanco */
-  --gris-suave: #64748B;
   --borde: #E2E8F0;
   --fondo: #F8FAFC;
   --blanco: #FFFFFF;
@@ -27,6 +30,8 @@ body {
   color: var(--tinta);
   font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
+/* El panel lateral y la ventana ocupan lo que les den. */
+body.en-panel, body.en-ventana { width: auto; min-width: 300px; }
 
 button { font: inherit; }
 .oculta { display: none !important; }
@@ -41,6 +46,7 @@ button { font: inherit; }
   border-bottom: 4px solid var(--verde-franja);
   color: var(--blanco);
 }
+.en-panel .banda { position: sticky; top: 0; z-index: 2; }
 .banda__logo {
   display: grid;
   place-items: center;
@@ -61,40 +67,31 @@ button { font: inherit; }
 .texto { margin: 0 0 14px; color: var(--gris); }
 
 .grupo {
-  margin: 14px 0 6px;
+  display: block;
+  margin: 16px 0 6px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--gris);
 }
-.grupo:first-child { margin-top: 0; }
-.grupo-fila { display: flex; align-items: baseline; justify-content: space-between; }
+.grupo-fila { display: flex; align-items: baseline; justify-content: space-between; margin-top: 16px; }
+.grupo-fila .grupo { margin-top: 0; }
 
-/* ── Tarjetas de acción ──────────────────────────────────────────────── */
-.tarjetas { display: flex; flex-direction: column; gap: 8px; }
-.accion {
+.subcabecera { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+
+/* ── Hoy ─────────────────────────────────────────────────────────────── */
+.hoy {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
-  padding: 9px 10px;
-  text-align: left;
+  padding: 10px 10px 10px 12px;
   background: var(--blanco);
   border: 2px solid var(--borde);
   border-bottom-width: 4px;
   border-radius: 14px;
-  color: var(--tinta);
-  cursor: pointer;
 }
-.accion:hover:not(:disabled) { border-color: #A7F3D0; }
-.accion:active:not(:disabled) { transform: translateY(1px); border-bottom-width: 3px; }
-.accion:focus-visible, .boton:focus-visible, .pastilla:focus-visible, .enlace:focus-visible, .icono-boton:focus-visible, .campo:focus-visible {
-  outline: 2px solid #10B981;
-  outline-offset: 2px;
-}
-.accion:disabled { opacity: 0.55; cursor: not-allowed; }
-.accion__icono {
+.hoy__icono {
   display: grid;
   place-items: center;
   width: 34px;
@@ -104,11 +101,71 @@ button { font: inherit; }
   color: var(--verde-texto);
   flex-shrink: 0;
 }
-.accion__texto { display: flex; flex-direction: column; min-width: 0; }
-.accion__titulo { font-weight: 700; font-size: 13.5px; }
-.accion__detalle { font-size: 12px; color: var(--gris); }
+.hoy__texto { flex: 1; min-width: 0; margin: 0; font-size: 13.5px; font-weight: 600; }
+.hoy__texto strong { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; margin-right: 2px; }
+
+/* ── Selección ───────────────────────────────────────────────────────── */
+.seleccion {
+  margin-top: 12px;
+  padding: 10px 12px 12px;
+  background: var(--verde-suave);
+  border: 2px solid var(--verde-borde);
+  border-bottom-width: 4px;
+  border-radius: 14px;
+}
+.seleccion .grupo { margin: 0 0 6px; color: var(--verde-texto); }
+.seleccion__texto {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--tinta);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.seleccion__botones { display: flex; gap: 8px; }
+.seleccion__botones .boton { flex: 1; }
 
 /* ── Calculadoras ────────────────────────────────────────────────────── */
+.buscador { position: relative; }
+.buscador__lupa {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gris);
+  pointer-events: none;
+}
+/* Con el contenedor delante: `.campo` va más abajo y, a igual especificidad, le quitaba el sitio a la lupa. */
+.buscador .buscador__campo { padding-left: 34px; }
+.buscador__campo::-webkit-search-cancel-button { cursor: pointer; }
+
+.resultados {
+  margin: 6px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--blanco);
+  border: 2px solid var(--borde);
+  border-radius: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.en-panel .resultados, .en-ventana .resultados { max-height: none; }
+.resultado {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.resultado[aria-selected="true"], .resultado:hover { background: var(--verde-suave); }
+.resultado__nombre { font-weight: 700; font-size: 13px; min-width: 0; }
+.resultado__categoria { flex-shrink: 0; font-size: 11.5px; color: var(--gris); }
+.resultado--app { cursor: default; padding: 4px 8px 2px; border-top: 1px solid var(--borde); margin-top: 2px; border-radius: 0; }
+.resultado--app:hover { background: none; }
+
 .calculadoras { display: flex; flex-wrap: wrap; gap: 6px; }
 .pastilla {
   padding: 5px 10px;
@@ -120,17 +177,50 @@ button { font: inherit; }
   font-weight: 600;
   cursor: pointer;
 }
-.pastilla:hover { border-color: #A7F3D0; background: #F0FDF4; }
+.pastilla:hover { border-color: var(--verde-borde); background: var(--verde-suave); }
+
+/* ── Baldosas: crear, ir y capturar ──────────────────────────────────── */
+.rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.baldosa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 9px;
+  text-align: left;
+  background: var(--blanco);
+  border: 2px solid var(--borde);
+  border-bottom-width: 4px;
+  border-radius: 14px;
+  color: var(--tinta);
+  cursor: pointer;
+}
+.baldosa:hover:not(:disabled) { border-color: var(--verde-borde); }
+.baldosa:active:not(:disabled) { transform: translateY(1px); border-bottom-width: 3px; }
+.baldosa:disabled { opacity: 0.55; cursor: not-allowed; }
+.baldosa__icono {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--verde-claro);
+  color: var(--verde-texto);
+  flex-shrink: 0;
+}
+.baldosa__titulo { font-weight: 700; font-size: 12.5px; line-height: 1.25; }
 
 /* ── Paciente ────────────────────────────────────────────────────────── */
 .paciente { margin-bottom: 8px; }
 .paciente__fila { display: flex; gap: 6px; }
 .pista { margin: 6px 0 0; font-size: 12px; color: var(--gris); }
+.pista--arriba { margin: 8px 0 6px; }
 .pista--ok { color: var(--verde-texto); font-weight: 600; }
 .nota-privacidad { margin: 8px 0 0; font-size: 12px; color: var(--gris); }
 
 /* ── Campos y botones ────────────────────────────────────────────────── */
 .etiqueta { display: block; margin: 0 0 6px; font-size: 12px; font-weight: 700; color: var(--tinta); }
+.etiqueta__ayuda { font-weight: 500; color: var(--gris); }
 .campo {
   width: 100%;
   padding: 8px 10px;
@@ -141,8 +231,11 @@ button { font: inherit; }
   font: inherit;
   font-size: 13px;
 }
+.campo:focus { border-color: var(--verde-borde); outline: none; }
 .campo--select { cursor: pointer; }
 .campo--corto { width: auto; min-width: 64px; }
+.campo--area { resize: vertical; min-height: 64px; line-height: 1.45; }
+.campo--debajo { margin-top: 6px; }
 
 .boton {
   display: inline-flex;
@@ -153,14 +246,16 @@ button { font: inherit; }
   font-weight: 700;
   cursor: pointer;
 }
+.boton:disabled { opacity: 0.6; cursor: progress; }
 .boton--ancho { width: 100%; }
+.boton--chico { padding: 6px 12px 8px; font-size: 13px; flex-shrink: 0; }
 .boton--principal {
   border: 0;
   background: var(--verde);
   color: var(--blanco);
-  box-shadow: inset 0 -4px 0 0 #064E3B;
+  box-shadow: inset 0 -4px 0 0 var(--verde-hondo);
 }
-.boton--principal:hover { background: var(--verde-franja); }
+.boton--principal:hover:not(:disabled) { background: var(--verde-franja); }
 .boton--secundario {
   margin-top: 8px;
   border: 2px solid var(--borde);
@@ -168,6 +263,7 @@ button { font: inherit; }
   background: var(--blanco);
   color: var(--verde-texto);
 }
+.boton--secundario.boton--chico, .boton--en-fila { margin-top: 0; }
 
 .icono-boton {
   display: grid;
@@ -194,10 +290,38 @@ button { font: inherit; }
   color: var(--verde);
   font-size: 12.5px;
   font-weight: 700;
+  text-align: left;
   cursor: pointer;
 }
 .enlace:hover { text-decoration: underline; }
 .enlace--apagado { color: var(--gris); font-weight: 600; }
+.enlace--con-icono { display: inline-flex; align-items: center; gap: 6px; }
+
+.baldosa:focus-visible, .boton:focus-visible, .pastilla:focus-visible, .enlace:focus-visible,
+.icono-boton:focus-visible, .campo:focus-visible {
+  outline: 2px solid #10B981;
+  outline-offset: 2px;
+}
+
+/* ── La flashcard ────────────────────────────────────────────────────── */
+.formulario { display: flex; flex-direction: column; gap: 10px; }
+.formulario .enlace--con-icono { align-self: flex-start; margin: -4px 0 -2px; }
+.formulario .pista { margin: 0; }
+
+.guardada {
+  padding: 14px;
+  background: var(--verde);
+  border-bottom: 4px solid var(--verde-franja);
+  border-radius: 14px;
+  color: var(--blanco);
+}
+.guardada__titulo { margin: 0; font-size: 16px; font-weight: 800; }
+.guardada__texto { margin: 2px 0 12px; font-size: 13px; color: #ECFDF5; }
+.guardada__botones { display: flex; gap: 8px; }
+.guardada__botones .boton { flex: 1; }
+.guardada .boton--principal { background: var(--blanco); color: var(--verde-texto); box-shadow: inset 0 -4px 0 0 var(--verde-claro); }
+.guardada .boton--principal:hover { background: var(--verde-suave); }
+.guardada .boton--secundario { border-color: rgba(255, 255, 255, 0.7); background: transparent; color: var(--blanco); }
 
 /* ── Código manual ───────────────────────────────────────────────────── */
 .codigo {
@@ -210,6 +334,7 @@ button { font: inherit; }
 .codigo summary { cursor: pointer; font-weight: 700; font-size: 13px; color: var(--verde-texto); }
 .codigo[open] summary { margin-bottom: 10px; }
 .error { margin: 8px 0 0; font-size: 12.5px; color: var(--rojo-texto); }
+.formulario .error { margin: 0; }
 
 /* ── Respuesta ───────────────────────────────────────────────────────── */
 .respuesta {
@@ -225,14 +350,15 @@ button { font: inherit; }
 /* ── Pie ─────────────────────────────────────────────────────────────── */
 .pie {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  gap: 4px 12px;
   margin-top: 14px;
   padding-top: 10px;
   border-top: 1px solid var(--borde);
 }
 
 /* ── Preferencias ────────────────────────────────────────────────────── */
-.preferencias__cabecera { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .opciones {
   margin: 0 0 12px;
   padding: 10px 12px;
@@ -244,7 +370,8 @@ button { font: inherit; }
 .opcion { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; font-size: 13px; cursor: pointer; }
 .opcion input { margin-top: 3px; accent-color: var(--verde); }
 .fila-campo { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 13px; }
-.atajo { margin: 4px 0; font-size: 12.5px; color: var(--gris); }
+.atajo { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 12.5px; color: var(--gris); }
+.atajo__teclas { display: inline-flex; gap: 3px; min-width: 104px; flex-shrink: 0; }
 kbd {
   display: inline-block;
   min-width: 20px;
@@ -259,5 +386,5 @@ kbd {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .accion:active:not(:disabled) { transform: none; }
+  .baldosa:active:not(:disabled) { transform: none; }
 }

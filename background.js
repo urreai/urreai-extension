@@ -1,19 +1,25 @@
 /* UrreAI — fondo de la extensión (service worker en Chrome, página de fondo en Firefox).
  *
  * Qué hace, y nada más:
- *   · el menú del clic derecho: preguntar al chat, crear una flashcard, guardar
- *     la selección en la nota del paciente y capturar una imagen;
- *   · el omnibox («urreai» y el nombre de una calculadora);
- *   · los atajos de captura y el recorte de la región;
+ *   · el menú del clic derecho: crear una flashcard, preguntar al chat,
+ *     guardar la selección en la nota del paciente y capturar una imagen;
+ *   · abrir el panel lateral con la flashcard lista para escribirle el dorso;
+ *   · el omnibox («urreai» y el nombre de cualquiera de las 185 calculadoras);
+ *   · los atajos y el recorte de la región;
  *   · la vinculación con un clic desde la página de la app;
  *   · y los avisos en la página, porque sin ellos cada acción fallaba en
  *     silencio: hasta la 0.2.0 `notify` escribía en la consola y nada más.
+ *
+ * Lo que se le pide a la app pasa por `lib/cliente.js`, que comparten el
+ * popup y el panel.
  */
 
-if (typeof importScripts === 'function' && typeof self.URREAI_ENLACES === 'undefined') {
-  importScripts('lib/enlaces.js')
+if (typeof importScripts === 'function' && typeof self.URREAI_CLIENTE === 'undefined') {
+  importScripts('lib/enlaces.js', 'lib/cliente.js')
 }
 const E = self.URREAI_ENLACES
+const C = self.URREAI_CLIENTE
+const { CLAVE, leer, guardar, borrar, baseDeLaApp } = C
 
 /*
  * Las llamadas que se esperan con `await` van por `browser` donde existe
@@ -22,32 +28,6 @@ const E = self.URREAI_ENLACES
  * que Firefox también atiende.
  */
 const nav = typeof browser !== 'undefined' ? browser : chrome
-
-const CLAVE = {
-  token: 'urreai_token',
-  api: 'urreai_api',
-  paciente: 'urreai_paciente',
-  preferencias: 'urreai_prefs',
-  captura: 'urreai_capture',
-}
-
-// ─── Almacenamiento (con callbacks: así funciona igual en Chrome y en Firefox) ─
-
-function leer(claves) {
-  return new Promise(resolve => chrome.storage.local.get(claves, resolve))
-}
-function guardar(datos) {
-  return new Promise(resolve => chrome.storage.local.set(datos, resolve))
-}
-function borrar(claves) {
-  return new Promise(resolve => chrome.storage.local.remove(claves, resolve))
-}
-
-/** La app con la que está vinculada: la de producción, o la de desarrollo si se vinculó desde ella. */
-async function baseDeLaApp() {
-  const { [CLAVE.api]: api } = await leer([CLAVE.api])
-  return api && E.esLaApp(api) ? api : E.APP
-}
 
 async function preferencias() {
   const { [CLAVE.preferencias]: p } = await leer([CLAVE.preferencias])
@@ -62,36 +42,20 @@ async function preferencias() {
   }
 }
 
-// ─── La app ────────────────────────────────────────────────────────────────
-
-async function pedirALaApp(ruta, cuerpo) {
-  const { [CLAVE.token]: token } = await leer([CLAVE.token])
-  if (!token) throw new Error('Vincula la extensión con tu cuenta: abre el ícono de UrreAI.')
-  const base = await baseDeLaApp()
-  const res = await fetch(`${base}${ruta}`, {
-    method: cuerpo ? 'POST' : 'GET',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    ...(cuerpo ? { body: JSON.stringify(cuerpo) } : {}),
-  })
-  const datos = await res.json().catch(() => ({}))
-  if (res.status === 401) {
-    await borrar([CLAVE.token])
-    throw new Error('La extensión se desvinculó de tu cuenta. Vuelve a vincularla desde el ícono.')
-  }
-  if (!res.ok || !datos.success) throw new Error(datos.error || `Error ${res.status}`)
-  return datos.data ?? {}
-}
+// ─── Capturas ──────────────────────────────────────────────────────────────
 
 /** Manda una captura con las preferencias del estudiante, y copia el texto si la app lo devuelve. */
 async function enviarCaptura(tabId, cuerpo) {
   const p = await preferencias()
   const campo = { lab: p.campoLab, vital: p.campoSignos, imaging: p.campoImagen, note: p.campoTexto }[cuerpo.kind]
-  const datos = await pedirALaApp('/api/extension/capture', {
-    ...cuerpo,
-    field: campo,
-    appendToTodayNote: p.notaDeHoy,
-    saveMode: p.modo,
-    ...(cuerpo.kind === 'lab' ? { labMode: p.labConRango ? 'interpreted' : 'raw' } : {}),
+  const datos = await C.pedir(E.API.captura, {
+    cuerpo: {
+      ...cuerpo,
+      field: campo,
+      appendToTodayNote: p.notaDeHoy,
+      saveMode: p.modo,
+      ...(cuerpo.kind === 'lab' ? { labMode: p.labConRango ? 'interpreted' : 'raw' } : {}),
+    },
   })
   const habiaQueCopiar = typeof datos.clipboardText === 'string' && datos.clipboardText.length > 0
   const copiado = habiaQueCopiar ? await copiarEnLaPagina(tabId, datos.clipboardText) : false
@@ -108,7 +72,21 @@ function resumenDeCaptura({ guardado, aviso, copiado, fallaCopia }, paciente) {
   return partes.join(' ') || 'Listo.'
 }
 
-// ─── En la página: copiar y avisar ─────────────────────────────────────────
+// ─── En la página: leer la selección, copiar y avisar ──────────────────────
+
+/** El texto seleccionado en la pestaña, o cadena vacía donde el navegador no deja leerlo. */
+async function seleccionEn(tabId) {
+  if (!tabId) return ''
+  try {
+    const [{ result } = {}] = await nav.scripting.executeScript({
+      target: { tabId },
+      func: () => (window.getSelection ? window.getSelection().toString() : ''),
+    })
+    return (result || '').trim()
+  } catch {
+    return ''
+  }
+}
 
 async function copiarEnLaPagina(tabId, texto) {
   if (!tabId || !texto) return false
@@ -180,6 +158,54 @@ async function abrir(url) {
   await nav.tabs.create({ url })
 }
 
+// ─── La flashcard, en el panel lateral ─────────────────────────────────────
+
+/**
+ * Abre el panel lateral de UrreAI en la ventana de la pestaña. Tiene que
+ * llamarse ANTES de cualquier `await`: Chrome y Firefox solo dejan abrirlo
+ * mientras dura el gesto del clic o del atajo, y un `await` lo termina.
+ * Devuelve la promesa del navegador, que se rechaza si no lo dejó.
+ */
+function abrirPanel(ventana) {
+  try {
+    if (chrome.sidePanel && typeof chrome.sidePanel.open === 'function') {
+      if (typeof ventana !== 'number') return Promise.reject(new Error('Sin ventana'))
+      return chrome.sidePanel.open({ windowId: ventana })
+    }
+    if (typeof browser !== 'undefined' && browser.sidebarAction && typeof browser.sidebarAction.open === 'function') {
+      return browser.sidebarAction.open()
+    }
+  } catch (err) {
+    return Promise.reject(err)
+  }
+  return Promise.reject(new Error('Este navegador no tiene panel lateral.'))
+}
+
+/**
+ * Deja la tarjeta para el panel y lo abre. El panel la recoge al cargar o, si
+ * ya estaba abierto, al cambiar el almacenamiento. Si el navegador no deja
+ * abrir el panel, la tarjeta se escribe en una ventana pequeña.
+ *
+ * `frente` puede ser una promesa: el atajo tiene que abrir el panel antes de
+ * leer la selección, que lleva un `await`.
+ */
+function abrirTarjeta(tab, frente) {
+  const ventana = tab?.windowId
+  const panel = abrirPanel(ventana)
+  // El rechazo se atiende más abajo, después de guardar la tarjeta; sin esto
+  // el navegador lo anota antes como una promesa sin atender.
+  panel.catch(() => {})
+  return Promise.resolve(frente)
+    .then(texto => guardar({
+      [CLAVE.tarjeta]: { frente: String(texto || '').slice(0, C.MAX_FRENTE), ventana: ventana ?? null, cuando: Date.now() },
+    }).then(() => panel))
+    .catch(async () => {
+      const { [CLAVE.tarjeta]: tarjeta } = await leer([CLAVE.tarjeta])
+      await guardar({ [CLAVE.tarjeta]: { ...(tarjeta || { frente: '', cuando: Date.now() }), ventana: 'nueva' } })
+      await nav.windows.create({ url: chrome.runtime.getURL('popup/popup.html?en=ventana'), type: 'popup', width: 420, height: 640 })
+    })
+}
+
 // ─── Instalación y menú del clic derecho ───────────────────────────────────
 
 chrome.runtime.onInstalled.addListener(async (detalles) => {
@@ -188,13 +214,13 @@ chrome.runtime.onInstalled.addListener(async (detalles) => {
   }
   if (detalles.reason === 'update') {
     // Los pacientes de la 0.1 se guardaban con destinos que la app ya no
-    // acepta (`round:`, `patient:`): se borran y se vuelven a elegir.
+    // acepta: se borran y se vuelven a elegir.
     await borrar(['urreai_active_patient'])
   }
 
   chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({ id: 'preguntar', title: 'Preguntar al chat de evidencia', contexts: ['selection'] })
     chrome.contextMenus.create({ id: 'flashcard', title: 'Crear flashcard con la selección', contexts: ['selection'] })
+    chrome.contextMenus.create({ id: 'preguntar', title: 'Preguntar al chat de evidencia', contexts: ['selection'] })
     chrome.contextMenus.create({ id: 'nota', title: 'Guardar en la nota del paciente', contexts: ['selection'] })
     chrome.contextMenus.create({ id: 'imagen-lab', title: 'UrreAI: capturar como laboratorio', contexts: ['image'] })
     chrome.contextMenus.create({ id: 'imagen-signos', title: 'UrreAI: capturar como signos vitales', contexts: ['image'] })
@@ -221,27 +247,33 @@ async function imagenComoDataUrl(url) {
   })
 }
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  const tabId = tab?.id
-  const seleccion = (info.selectionText || '').trim()
+async function preguntar(texto) {
   const base = await baseDeLaApp()
+  await abrir(texto ? E.enlace(base, 'pregunta', texto) : `${base}/dashboard/chat-evidencia`)
+}
 
-  if (info.menuItemId === 'preguntar') {
-    if (seleccion) await abrir(E.enlace(base, 'pregunta', seleccion))
-    return
-  }
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  const seleccion = (info.selectionText || '').trim()
+  // Sin `await` antes: abrir el panel necesita el gesto del clic.
   if (info.menuItemId === 'flashcard') {
-    if (seleccion) await abrir(E.enlace(base, 'flashcard', seleccion))
+    abrirTarjeta(tab, seleccion)
     return
   }
+  if (info.menuItemId === 'preguntar') {
+    if (seleccion) preguntar(seleccion)
+    return
+  }
+  capturarDesdeElMenu(info, tab, seleccion)
+})
 
+async function capturarDesdeElMenu(info, tab, seleccion) {
+  const tabId = tab?.id
   const p = await preferencias()
   const paciente = await pacienteActivo()
   if (!paciente && p.modo !== 'clipboard') {
     await avisar(tabId, 'Elige primero un paciente: abre el ícono de UrreAI.', 'error')
     return
   }
-
   try {
     if (info.menuItemId === 'nota') {
       if (!seleccion) return
@@ -259,7 +291,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   } catch (err) {
     await avisar(tabId, err.message || 'No se pudo guardar.', 'error')
   }
-})
+}
 
 // ─── Omnibox: «urreai» y lo que buscas ─────────────────────────────────────
 
@@ -269,17 +301,19 @@ function escaparXml(s) {
 
 chrome.omnibox.onInputChanged.addListener((texto, sugerir) => {
   const q = (texto || '').trim()
-  const sugerencias = E.buscarCalculadoras(q).slice(0, 6).map(c => ({
-    content: `calc:${c.id}`,
-    description: `${escaparXml(c.nombre)} · abrir la calculadora`,
-  }))
-  if (q.length >= 5) {
-    sugerencias.push({ content: `pregunta:${q}`, description: `Preguntar al chat de evidencia: ${escaparXml(q)}` })
-  }
-  if (q) {
-    sugerencias.push({ content: `buscar:${q}`, description: `Buscar «${escaparXml(q)}» en las 185 calculadoras` })
-  }
-  sugerir(sugerencias)
+  C.catalogo().then(lista => {
+    const sugerencias = E.buscarCalculadoras(q, lista).slice(0, 6).map(c => ({
+      content: `calc:${c.id}`,
+      description: `${escaparXml(c.nombre)} · abrir la calculadora`,
+    }))
+    if (q.length >= 5) {
+      sugerencias.push({ content: `pregunta:${q}`, description: `Preguntar al chat de evidencia: ${escaparXml(q)}` })
+    }
+    if (q) {
+      sugerencias.push({ content: `buscar:${q}`, description: `Buscar «${escaparXml(q)}» en las calculadoras de UrreAI` })
+    }
+    sugerir(sugerencias)
+  })
 })
 
 chrome.omnibox.onInputEntered.addListener(async (entrada) => {
@@ -290,7 +324,7 @@ chrome.omnibox.onInputEntered.addListener(async (entrada) => {
   else if (entrada.startsWith('buscar:')) url = E.enlace(base, 'buscarCalculadora', entrada.slice(7))
   else {
     // Texto escrito sin elegir sugerencia: si nombra una sola calculadora, esa.
-    const coinciden = E.buscarCalculadoras(entrada)
+    const coinciden = E.buscarCalculadoras(entrada, await C.catalogo())
     url = coinciden.length === 1
       ? E.enlace(base, 'calculadora', coinciden[0].id)
       : E.enlace(base, 'buscarCalculadora', entrada.trim())
@@ -298,12 +332,17 @@ chrome.omnibox.onInputEntered.addListener(async (entrada) => {
   await abrir(url)
 })
 
-// ─── Capturar una región de la pantalla ────────────────────────────────────
+// ─── Atajos ────────────────────────────────────────────────────────────────
 
 const TIPO_DE_ATAJO = { 'capture-lab': 'lab', 'capture-vital': 'vital', 'capture-imaging': 'imaging' }
 
-async function empezarCaptura(tipo) {
+async function pestanaActiva() {
   const [tab] = await nav.tabs.query({ active: true, currentWindow: true })
+  return tab || null
+}
+
+async function empezarCaptura(tipo) {
+  const tab = await pestanaActiva()
   if (!tab) throw new Error('No hay una pestaña activa.')
   const p = await preferencias()
   const paciente = await pacienteActivo()
@@ -313,15 +352,21 @@ async function empezarCaptura(tipo) {
   await nav.scripting.executeScript({ target: { tabId: tab.id }, files: ['content/capture-overlay.js'] })
 }
 
-chrome.commands.onCommand.addListener(async (comando) => {
+chrome.commands.onCommand.addListener((comando, tab) => {
+  if (comando === 'crear-flashcard') {
+    // El panel se abre primero, con el gesto; la selección llega después.
+    abrirTarjeta(tab, seleccionEn(tab?.id))
+    return
+  }
+  if (comando === 'preguntar') {
+    ;(async () => preguntar(await seleccionEn((tab || await pestanaActiva())?.id)))()
+    return
+  }
   const tipo = TIPO_DE_ATAJO[comando]
   if (!tipo) return
-  try {
-    await empezarCaptura(tipo)
-  } catch (err) {
-    const [tab] = await nav.tabs.query({ active: true, currentWindow: true })
-    await avisar(tab?.id, err.message || 'No se pudo empezar la captura.', 'error')
-  }
+  empezarCaptura(tipo).catch(async (err) => {
+    await avisar((await pestanaActiva())?.id, err.message || 'No se pudo empezar la captura.', 'error')
+  })
 })
 
 async function recortar(dataUrl, region) {
@@ -359,7 +404,7 @@ function vieneDeLaApp(remitente) {
 
 async function vincular(codigo, origen) {
   if (!FORMATO_DEL_CODIGO.test(codigo)) throw new Error('El código no tiene el formato de UrreAI.')
-  const res = await fetch(`${origen}/api/extension/context`, { headers: { Authorization: `Bearer ${codigo}` } })
+  const res = await fetch(`${origen}${E.API.pacientes}`, { headers: { Authorization: `Bearer ${codigo}` } })
   if (!res.ok) throw new Error('La app no reconoció el código. Genera otro.')
   await guardar({ [CLAVE.token]: codigo, [CLAVE.api]: origen })
 }

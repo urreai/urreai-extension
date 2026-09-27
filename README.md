@@ -6,8 +6,9 @@
 ![Firefox 121+](https://img.shields.io/badge/Firefox-121%2B-047857)
 
 > **EN:** Browser extension (Manifest V3, Chrome & Firefox) for UrreAI, the study app for
-> medical students in Colombia. Ask the evidence chat about what you are reading, turn a
-> selection into a flashcard, or capture lab results for a patient of your ward round.
+> medical students in Colombia. Turn what you are reading into a flashcard without leaving the
+> page, search the 185 clinical calculators, ask the evidence chat, or capture lab results for
+> a patient of your ward round.
 
 Lo que lees en rotación, a UrreAI sin copiar y pegar.
 
@@ -15,12 +16,13 @@ Lo que lees en rotación, a UrreAI sin copiar y pegar.
 
 | Acción | Cómo | Adónde va |
 |---|---|---|
-| **Preguntar al chat de evidencia** | Selecciona un texto, clic derecho | Se abre el chat con la pregunta escrita. La envías tú |
-| **Crear una flashcard** | Selecciona un texto, clic derecho | Se abre el formulario con ese texto de frente. El dorso lo escribes tú |
-| **Capturar laboratorios** | Botón del popup o `Ctrl+Shift+L`, y arrastras sobre la tabla | Se transcriben con el rango que trae el reporte. Van a los laboratorios del paciente en **Mi ronda**, o a su nota de hoy en **Notas del paciente** |
-| **Capturar signos vitales o un informe de imagen** | `Ctrl+Shift+I` / `Ctrl+Shift+R` | A la nota de hoy en **Notas del paciente**. Mi ronda no los guarda: se copian para pegarlos en la nota del día |
+| **Crear una flashcard** | Selecciona un texto: clic derecho o `Alt+Mayús+F` | Se abre el panel lateral de UrreAI con ese texto de frente. Escribes el dorso, eliges la rotación y la guardas **sin salir de la página**; entra hoy mismo a tu repaso, y el panel se queda abierto para la siguiente |
+| **Lo de hoy** | Abre el ícono | Cuántas flashcards tocan hoy, el mismo número de Flashcards, con **Repasar** |
+| **Calculadoras** | El buscador del ícono, o `urreai glasgow` en la barra de direcciones | Cualquiera de las 185, por nombre, sigla, etiqueta o especialidad, con tus favoritas a mano |
+| **Preguntar al chat de evidencia** | Selecciona un texto: clic derecho o `Alt+Mayús+E` | Se abre el chat con la pregunta escrita. La envías tú |
+| **Capturar laboratorios** | Botón del popup o `Alt+Mayús+L`, y arrastras sobre la tabla | Se transcriben con el rango que trae el reporte. Van a los laboratorios del paciente en **Mi ronda**, o a su nota de hoy en **Notas del paciente** |
+| **Capturar signos vitales o un informe de imagen** | Botón del popup (el atajo se asigna en `chrome://extensions/shortcuts`) | A la nota de hoy en **Notas del paciente**. Mi ronda no los guarda: se copian para pegarlos en la nota del día |
 | **Guardar la selección** | Clic derecho, «Guardar en la nota del paciente» | A la nota de hoy del paciente |
-| **Calculadoras** | Escribe `urreai glasgow` en la barra de direcciones | Abre esa calculadora entre las 185 de UrreAI |
 
 Cada captura dice al final lo que pasó de verdad: dónde se guardó, o que se copió.
 
@@ -58,11 +60,21 @@ Cada vinculación vale seis meses. En la página se ven todas las del estudiante
 | `activeTab` | Leer la selección y tomar la captura de la pestaña en la que pulsas, y solo en ese momento |
 | `scripting` | Dibujar el recorte y los avisos en esa pestaña |
 | `contextMenus` | El menú del clic derecho |
-| `storage` | Guardar el código de vinculación, el paciente elegido y tus preferencias |
+| `storage` | Guardar el código de vinculación, el paciente elegido, tus preferencias y el catálogo de calculadoras de un día |
+| `sidePanel` | Abrir el panel lateral de UrreAI, donde se escribe la flashcard sin salir de la página. Firefox usa `sidebar_action`, que no pide permiso |
 | `clipboardWrite` | Copiar lo capturado cuando no se guarda |
 | `app.urreai.com` | Hablar con UrreAI y vincularse desde su página |
 
 Ya no pide `clipboardRead`: la 0.1 leía el portapapeles para buscar el código, y con la vinculación de un clic sobra.
+
+## Qué cambió en la 0.3.0
+
+- **La flashcard se escribe sin salir de la página.** En la 0.2 el clic derecho abría Flashcards en otra pestaña: para escribir el dorso había que dejar lo que se estaba leyendo. Ahora se abre el panel lateral con el frente puesto, la rotación de la última vez ya elegida, y se guarda ahí (`/api/extension/flashcard`). En el popup, la tarjeta a medio escribir se guarda como borrador, porque el popup se cierra al hacer clic fuera.
+- **Las 185 calculadoras, no dieciséis.** El popup y el omnibox buscan en el catálogo de la app (`/api/extension/calculadoras`), guardado un día; primero las que empiezan por lo escrito, así que «sofa» da SOFA antes que qSOFA. Sin red, las dieciséis de fábrica.
+- **Lo de hoy al abrir el ícono**: las flashcards para hoy, con la misma regla que Flashcards (`/api/extension/resumen`), y tus calculadoras favoritas.
+- **Lo que tenías seleccionado** aparece arriba del popup, con «Hacer flashcard» y «Preguntar al chat».
+- **Atajos que no pisan los del navegador.** Los de la 0.2 eran `Ctrl+Shift+I`, que abre las herramientas de desarrollo, y `Ctrl+Shift+R`, que recarga sin caché. Ahora son `Alt+Mayús+U`, `F`, `E` y `L` (en Mac, `Ctrl+Mayús`), y las preferencias enseñan los que de verdad tiene tu navegador.
+- **Un solo cliente de la app** (`lib/cliente.js`) para el fondo, el popup y el panel. Antes cada uno tenía su copia, y solo una borraba el código cuando la app lo rechazaba.
 
 ## Qué cambió en la 0.2.0
 
@@ -79,7 +91,7 @@ Ya no pide `clipboardRead`: la 0.1 leía el portapapeles para buscar el código,
 ## Desarrollo
 
 ```bash
-npm test          # node --test: enlaces, manifiesto, marca, vinculación
+npm test          # node --test: enlaces, cliente de la app, manifiesto, atajos, marca, vinculación
 npm run lint      # web-ext lint
 npm run build     # el ZIP para las tiendas, en dist/
 py scripts/make-icons.py   # los íconos, desde scripts/isotipo-420.png

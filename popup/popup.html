@@ -6,6 +6,11 @@
 <title>UrreAI</title>
 <link rel="stylesheet" href="popup.css">
 </head>
+<!--
+  El popup, el panel lateral y la ventana de la flashcard son esta misma
+  página. `popup.js` pone en el body la clase de dónde se abrió: el popup
+  tiene ancho fijo, y el panel y la ventana ocupan lo que les den.
+-->
 <body>
   <header class="banda">
     <span class="banda__logo"><img src="../icons/icon-48.png" alt="" width="26" height="26"></span>
@@ -35,55 +40,57 @@
 
   <!-- ── Vinculada ────────────────────────────────────────────────────── -->
   <section id="vista-principal" class="vista oculta">
-    <p class="grupo">De lo que estás leyendo</p>
-    <div class="tarjetas">
-      <button class="accion" type="button" data-accion="preguntar">
-        <span class="accion__icono" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </span>
-        <span class="accion__texto">
-          <span class="accion__titulo">Preguntar al chat de evidencia</span>
-          <span class="accion__detalle">Con el texto que tengas seleccionado</span>
-        </span>
-      </button>
-      <button class="accion" type="button" data-accion="flashcard">
-        <span class="accion__icono" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="7" y1="10" x2="17" y2="10"/><line x1="7" y1="14" x2="13" y2="14"/></svg>
-        </span>
-        <span class="accion__texto">
-          <span class="accion__titulo">Crear flashcard</span>
-          <span class="accion__detalle">La selección de frente; el dorso lo escribes tú</span>
-        </span>
-      </button>
+
+    <!-- Lo de hoy: el mismo número que «Para hoy» en Flashcards. -->
+    <div id="hoy" class="hoy">
+      <span class="hoy__icono" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="15" height="13" rx="2"/><path d="M7 3h12a2 2 0 0 1 2 2v11"/></svg>
+      </span>
+      <p id="hoy-texto" class="hoy__texto" aria-live="polite">Buscando tus flashcards de hoy…</p>
+      <button id="hoy-boton" class="boton boton--principal boton--chico oculta" type="button">Repasar</button>
     </div>
 
-    <p class="grupo">Rotación</p>
-    <div class="tarjetas">
-      <button class="accion" type="button" data-accion="caso">
-        <span class="accion__icono" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 6H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-        </span>
-        <span class="accion__texto">
-          <span class="accion__titulo">Registrar un caso</span>
-          <span class="accion__detalle">En el registro de rotaciones</span>
-        </span>
-      </button>
-      <button class="accion" type="button" data-accion="estudio">
-        <span class="accion__icono" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>
-        </span>
-        <span class="accion__texto">
-          <span class="accion__titulo">Plan de estudio</span>
-          <span class="accion__detalle">Lo que te toca hoy</span>
-        </span>
-      </button>
+    <!-- Lo que el estudiante tenía seleccionado al abrir el popup. -->
+    <div id="seleccion" class="seleccion oculta">
+      <p class="grupo">Lo que seleccionaste</p>
+      <p id="seleccion-texto" class="seleccion__texto"></p>
+      <div class="seleccion__botones">
+        <button id="seleccion-flashcard" class="boton boton--principal" type="button">Hacer flashcard</button>
+        <button id="seleccion-preguntar" class="boton boton--secundario boton--en-fila" type="button">Preguntar al chat</button>
+      </div>
     </div>
 
     <div class="grupo-fila">
-      <p class="grupo">Calculadoras</p>
+      <label class="grupo" for="buscar-calculadora">Calculadoras</label>
       <button id="favoritas" class="enlace" type="button">Mis favoritas</button>
     </div>
+    <div class="buscador">
+      <svg class="buscador__lupa" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="buscar-calculadora" class="campo buscador__campo" type="search" placeholder="Glasgow, CURB-65, dosis pediátrica…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="resultados" aria-autocomplete="list">
+    </div>
+    <ul id="resultados" class="resultados oculta" role="listbox" aria-label="Calculadoras que coinciden"></ul>
+    <p id="calculadoras-pista" class="pista pista--arriba"></p>
     <div id="calculadoras" class="calculadoras"></div>
+
+    <p class="grupo">Crear e ir</p>
+    <div class="rejilla">
+      <button class="baldosa" type="button" data-accion="flashcard">
+        <span class="baldosa__icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="7" y1="10" x2="17" y2="10"/><line x1="7" y1="14" x2="13" y2="14"/></svg></span>
+        <span class="baldosa__titulo">Nueva flashcard</span>
+      </button>
+      <button class="baldosa" type="button" data-accion="preguntar">
+        <span class="baldosa__icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+        <span class="baldosa__titulo">Chat de evidencia</span>
+      </button>
+      <button class="baldosa" type="button" data-accion="caso">
+        <span class="baldosa__icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 6H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></span>
+        <span class="baldosa__titulo">Registrar un caso</span>
+      </button>
+      <button class="baldosa" type="button" data-accion="estudio">
+        <span class="baldosa__icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg></span>
+        <span class="baldosa__titulo">Plan de estudio</span>
+      </button>
+    </div>
 
     <p class="grupo">Para un paciente</p>
     <div class="paciente">
@@ -97,42 +104,22 @@
       </div>
       <p id="pista-paciente" class="pista">Cargando tus pacientes…</p>
     </div>
-    <div class="tarjetas">
-      <button class="accion" type="button" data-accion="capturar-lab" data-con-paciente>
-        <span class="accion__icono" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6L4 17a2 2 0 0 0 1.7 3h12.6A2 2 0 0 0 20 17L15 8V2"/><line x1="9" y1="2" x2="15" y2="2"/></svg>
-        </span>
-        <span class="accion__texto">
-          <span class="accion__titulo">Capturar laboratorios</span>
-          <span class="accion__detalle">Arrastra sobre la tabla de resultados</span>
-        </span>
+    <div class="rejilla">
+      <button class="baldosa" type="button" data-accion="capturar-lab" data-con-paciente title="Arrastra sobre la tabla de resultados">
+        <span class="baldosa__icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6L4 17a2 2 0 0 0 1.7 3h12.6A2 2 0 0 0 20 17L15 8V2"/><line x1="9" y1="2" x2="15" y2="2"/></svg></span>
+        <span class="baldosa__titulo">Capturar laboratorios</span>
       </button>
-      <button class="accion" type="button" data-accion="capturar-signos" data-con-paciente>
-        <span class="accion__icono" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        </span>
-        <span class="accion__texto">
-          <span class="accion__titulo">Capturar signos vitales</span>
-          <span class="accion__detalle">TA, FC, FR, temperatura, SatO₂</span>
-        </span>
+      <button class="baldosa" type="button" data-accion="capturar-signos" data-con-paciente title="TA, FC, FR, temperatura, SatO₂">
+        <span class="baldosa__icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+        <span class="baldosa__titulo">Capturar signos vitales</span>
       </button>
-      <button class="accion" type="button" data-accion="capturar-informe" data-con-paciente>
-        <span class="accion__icono" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        </span>
-        <span class="accion__texto">
-          <span class="accion__titulo">Capturar un informe de imagen</span>
-          <span class="accion__detalle">El texto del informe: radiografía, ecografía, TAC…</span>
-        </span>
+      <button class="baldosa" type="button" data-accion="capturar-informe" data-con-paciente title="El texto del informe: radiografía, ecografía, TAC…">
+        <span class="baldosa__icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
+        <span class="baldosa__titulo">Capturar un informe</span>
       </button>
-      <button class="accion" type="button" data-accion="nota" data-con-paciente>
-        <span class="accion__icono" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
-        </span>
-        <span class="accion__texto">
-          <span class="accion__titulo">Guardar la selección</span>
-          <span class="accion__detalle">En la nota de hoy del paciente</span>
-        </span>
+      <button class="baldosa" type="button" data-accion="nota" data-con-paciente title="En la nota de hoy del paciente">
+        <span class="baldosa__icono" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></span>
+        <span class="baldosa__titulo">Guardar la selección</span>
       </button>
     </div>
     <p class="nota-privacidad">Captura solo los resultados, sin el nombre ni el documento del paciente.</p>
@@ -141,13 +128,58 @@
 
     <footer class="pie">
       <button id="abrir-app" class="enlace" type="button">Abrir UrreAI</button>
+      <button id="abrir-panel" class="enlace" type="button">Abrir en el panel lateral</button>
       <button id="desvincular" class="enlace enlace--apagado" type="button">Desvincular</button>
     </footer>
   </section>
 
+  <!-- ── Nueva flashcard ──────────────────────────────────────────────── -->
+  <section id="vista-tarjeta" class="vista oculta">
+    <div class="subcabecera">
+      <button id="cerrar-tarjeta" class="icono-boton" type="button" title="Volver" aria-label="Volver">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h1 class="titulo titulo--pequeno">Nueva flashcard</h1>
+    </div>
+
+    <form id="form-tarjeta" class="formulario" novalidate>
+      <div class="campo-con-etiqueta">
+        <label class="etiqueta" for="tarjeta-frente">Frente <span class="etiqueta__ayuda">lo que te vas a preguntar</span></label>
+        <textarea id="tarjeta-frente" class="campo campo--area" rows="3" maxlength="2000" required></textarea>
+      </div>
+      <button id="intercambiar" class="enlace enlace--con-icono" type="button">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="7 3 3 7 7 11"/><line x1="3" y1="7" x2="21" y2="7"/><polyline points="17 13 21 17 17 21"/><line x1="21" y1="17" x2="3" y2="17"/></svg>
+        Intercambiar frente y dorso
+      </button>
+      <div class="campo-con-etiqueta">
+        <label class="etiqueta" for="tarjeta-dorso">Dorso <span class="etiqueta__ayuda">la respuesta</span></label>
+        <textarea id="tarjeta-dorso" class="campo campo--area" rows="4" maxlength="5000" required></textarea>
+      </div>
+      <div class="campo-con-etiqueta">
+        <label class="etiqueta" for="tarjeta-rotacion">Rotación <span class="etiqueta__ayuda">el mazo donde queda</span></label>
+        <select id="tarjeta-rotacion" class="campo campo--select">
+          <option value="">Sin rotación</option>
+        </select>
+        <input id="tarjeta-rotacion-otra" class="campo campo--debajo oculta" type="text" maxlength="200" placeholder="¿Cuál rotación?" aria-label="Nombre de la rotación">
+      </div>
+      <p id="tarjeta-error" class="error oculta" role="alert"></p>
+      <button id="guardar-tarjeta" class="boton boton--principal boton--ancho" type="submit">Guardar flashcard</button>
+      <p class="pista">Con <kbd>Ctrl</kbd> <kbd>Enter</kbd> también se guarda. Entra hoy mismo a tu repaso.</p>
+    </form>
+
+    <div id="tarjeta-guardada" class="guardada oculta" role="status">
+      <p class="guardada__titulo">Flashcard guardada</p>
+      <p class="guardada__texto">Ya está en tu repaso de hoy, en Flashcards.</p>
+      <div class="guardada__botones">
+        <button id="otra-tarjeta" class="boton boton--principal" type="button">Crear otra</button>
+        <button id="ver-flashcards" class="boton boton--secundario boton--en-fila" type="button">Ver en Flashcards</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ── Preferencias ─────────────────────────────────────────────────── -->
   <section id="vista-preferencias" class="vista oculta">
-    <div class="preferencias__cabecera">
+    <div class="subcabecera">
       <button id="cerrar-preferencias" class="icono-boton" type="button" title="Volver" aria-label="Volver">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
@@ -200,11 +232,8 @@
 
     <div class="opciones">
       <p class="etiqueta">Atajos de teclado</p>
-      <p class="atajo"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>U</kbd> Abrir UrreAI</p>
-      <p class="atajo"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>L</kbd> Capturar laboratorios</p>
-      <p class="atajo"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>I</kbd> Capturar signos vitales</p>
-      <p class="atajo"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>R</kbd> Capturar un informe de imagen</p>
-      <p class="pista">En Firefox se cambian en la página de complementos; en Chrome, en chrome://extensions/shortcuts.</p>
+      <div id="atajos"></div>
+      <p class="pista">En Chrome se cambian en chrome://extensions/shortcuts; en Firefox, en la página de complementos, con la rueda y «Gestionar atajos».</p>
     </div>
 
     <button id="guardar-preferencias" class="boton boton--principal boton--ancho" type="button">Guardar</button>
@@ -212,6 +241,7 @@
   </section>
 
   <script src="../lib/enlaces.js"></script>
+  <script src="../lib/cliente.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 {
   "name": "urreai-extension",
-  "version": "0.2.0",
-  "description": "Browser extension (Manifest V3, Chrome & Firefox) for UrreAI: ask the evidence chat about what you read, turn a selection into a flashcard, or capture labs for a patient of your ward round.",
+  "version": "0.3.0",
+  "description": "Browser extension (Manifest V3, Chrome & Firefox) for UrreAI: make flashcards without leaving the page, search the 185 clinical calculators, ask the evidence chat, and capture labs for a patient of your ward round.",
   "private": true,
   "homepage": "https://urreai.com",
   "repository": {
