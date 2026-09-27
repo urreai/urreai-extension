@@ -1,475 +1,355 @@
-/* UrreAI browser extension — popup */
+/* UrreAI — el popup de la extensión. */
 
-const API_BASE = 'https://app.urreai.com'
-const STORAGE_KEY_TOKEN = 'urreai_token'
-const STORAGE_KEY_PATIENT = 'urreai_active_patient'
-const STORAGE_KEY_PREFS = 'urreai_prefs'
+const E = window.URREAI_ENLACES
+const nav = typeof browser !== 'undefined' ? browser : chrome
 
-const DEFAULT_PREFS = {
-  fieldLab: 'objetivo',
-  fieldVital: 'objetivo',
-  fieldImaging: 'objetivo',
-  fieldNote: 'subjetivo',
-  appendToToday: true,
-  formatLab: '',
-  formatVital: '',
-  formatImaging: '',
-  saveMode: 'save',  // 'save' | 'clipboard' | 'both'
+const CLAVE = {
+  token: 'urreai_token',
+  api: 'urreai_api',
+  paciente: 'urreai_paciente',
+  preferencias: 'urreai_prefs',
 }
 
-// ─── Storage helpers (cross-browser: chrome.* funciona en Firefox tambien con manifest v3) ──
+const PREFERENCIAS = {
+  campoLab: 'objetivo',
+  campoSignos: 'objetivo',
+  campoImagen: 'objetivo',
+  campoTexto: 'subjetivo',
+  notaDeHoy: true,
+  labConRango: true,
+  modo: 'save',
+}
 
-function storageGet(key) {
-  return new Promise(resolve => {
-    chrome.storage.local.get([key], result => resolve(result[key]))
+const $ = (id) => document.getElementById(id)
+
+// ─── Almacenamiento ────────────────────────────────────────────────────────
+
+function leer(claves) {
+  return new Promise(resolve => chrome.storage.local.get(claves, resolve))
+}
+function guardar(datos) {
+  return new Promise(resolve => chrome.storage.local.set(datos, resolve))
+}
+function borrar(claves) {
+  return new Promise(resolve => chrome.storage.local.remove(claves, resolve))
+}
+
+async function baseDeLaApp() {
+  const { [CLAVE.api]: api } = await leer([CLAVE.api])
+  return api && E.esLaApp(api) ? api : E.APP
+}
+
+async function preferencias() {
+  const { [CLAVE.preferencias]: p } = await leer([CLAVE.preferencias])
+  return { ...PREFERENCIAS, ...(p || {}) }
+}
+
+// ─── La app ────────────────────────────────────────────────────────────────
+
+async function pedirALaApp(ruta, opciones = {}) {
+  const { [CLAVE.token]: token } = await leer([CLAVE.token])
+  if (!token) throw new Error('SIN_VINCULAR')
+  const base = await baseDeLaApp()
+  const res = await fetch(`${base}${ruta}`, {
+    ...opciones,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(opciones.headers || {}) },
   })
-}
-function storageSet(key, value) {
-  return new Promise(resolve => {
-    chrome.storage.local.set({ [key]: value }, () => resolve())
-  })
-}
-function storageRemove(key) {
-  return new Promise(resolve => {
-    chrome.storage.local.remove([key], () => resolve())
-  })
-}
-
-// ─── API client ────────────────────────────────────────────────────────────
-
-async function apiFetch(path, opts = {}) {
-  const token = await storageGet(STORAGE_KEY_TOKEN)
-  if (!token) throw new Error('NO_AUTH')
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
-    ...(opts.headers || {}),
-  }
-  const res = await fetch(`${API_BASE}${path}`, { ...opts, headers })
   if (res.status === 401) {
-    await storageRemove(STORAGE_KEY_TOKEN)
-    throw new Error('NO_AUTH')
+    await borrar([CLAVE.token])
+    throw new Error('SIN_VINCULAR')
   }
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok || !data.success) {
-    throw new Error(data.error || `Error ${res.status}`)
-  }
-  // Auto-copy si el API devolvió clipboardText
-  if (data?.data?.clipboardText) {
-    try { await navigator.clipboard.writeText(data.data.clipboardText) } catch {}
-  }
-  return data
+  const datos = await res.json().catch(() => ({}))
+  if (!res.ok || !datos.success) throw new Error(datos.error || `Error ${res.status}`)
+  return datos.data ?? {}
 }
 
-// ─── View switching ────────────────────────────────────────────────────────
-
-let lastView = 'main'
-
-function showView(name) {
-  document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'))
-  const el = document.getElementById(`view-${name}`)
-  if (el) el.classList.remove('hidden')
-  if (name === 'main' || name === 'auth') lastView = name
+async function abrir(url) {
+  await nav.tabs.create({ url })
+  window.close()
 }
 
-// ─── Settings ──────────────────────────────────────────────────────────────
+// ─── Vistas ────────────────────────────────────────────────────────────────
 
-function updateSaveModeUI() {
-  // Ocultar sección de "agregar a nota de hoy" si el modo es solo clipboard
-  const mode = (document.querySelector('input[name="saveMode"]:checked') || {}).value
-  const appendGroup = document.getElementById('settings-group-append')
-  if (appendGroup) {
-    appendGroup.style.display = mode === 'clipboard' ? 'none' : ''
-  }
+let vistaAnterior = 'principal'
+
+function mostrar(vista) {
+  document.querySelectorAll('.vista').forEach(v => v.classList.add('oculta'))
+  $(`vista-${vista}`).classList.remove('oculta')
+  if (vista !== 'preferencias') vistaAnterior = vista
+  $('estado').textContent = vista === 'vincular' ? 'Sin vincular' : 'Vinculada a tu cuenta'
 }
 
-async function loadPrefsIntoForm() {
-  const saved = await storageGet(STORAGE_KEY_PREFS)
-  const prefs = { ...DEFAULT_PREFS, ...(saved || {}) }
-  document.getElementById('field-lab').value = prefs.fieldLab
-  document.getElementById('field-vital').value = prefs.fieldVital
-  document.getElementById('field-imaging').value = prefs.fieldImaging
-  document.getElementById('field-note').value = prefs.fieldNote
-  document.getElementById('format-lab').value = prefs.formatLab
-  document.getElementById('format-vital').value = prefs.formatVital
-  document.getElementById('format-imaging').value = prefs.formatImaging
-  document.getElementById('append-true').checked = prefs.appendToToday
-  document.getElementById('append-false').checked = !prefs.appendToToday
-  const modeEl = document.getElementById(`mode-${prefs.saveMode}`)
-  if (modeEl) modeEl.checked = true
-  updateSaveModeUI()
+function responder(texto, tipo = 'ok') {
+  const caja = $('respuesta')
+  caja.className = `respuesta respuesta--${tipo}`
+  caja.textContent = texto
+  if (tipo === 'ok') setTimeout(() => caja.classList.add('oculta'), 5000)
 }
 
-async function savePrefs() {
-  const modeInput = document.querySelector('input[name="saveMode"]:checked')
-  const prefs = {
-    fieldLab: document.getElementById('field-lab').value,
-    fieldVital: document.getElementById('field-vital').value,
-    fieldImaging: document.getElementById('field-imaging').value,
-    fieldNote: document.getElementById('field-note').value,
-    formatLab: document.getElementById('format-lab').value.trim(),
-    formatVital: document.getElementById('format-vital').value.trim(),
-    formatImaging: document.getElementById('format-imaging').value.trim(),
-    appendToToday: document.getElementById('append-true').checked,
-    saveMode: modeInput ? modeInput.value : 'save',
-  }
-  await storageSet(STORAGE_KEY_PREFS, prefs)
-  const saved = document.getElementById('prefs-saved')
-  saved.classList.remove('hidden')
-  setTimeout(() => saved.classList.add('hidden'), 2000)
-}
+// ─── Vincular ──────────────────────────────────────────────────────────────
 
-// Reactivo: cuando el usuario cambia el modo, ocultar/mostrar secciones
-document.querySelectorAll('input[name="saveMode"]').forEach(el => {
-  el.addEventListener('change', updateSaveModeUI)
+$('ir-a-vincular').addEventListener('click', async () => {
+  await abrir(E.enlace(await baseDeLaApp(), 'vincular'))
 })
 
-document.getElementById('settings-btn').addEventListener('click', async () => {
-  await loadPrefsIntoForm()
-  showView('settings')
-})
-document.getElementById('settings-back').addEventListener('click', () => {
-  showView(lastView)
-})
-document.getElementById('save-prefs').addEventListener('click', savePrefs)
-document.getElementById('open-shortcuts').addEventListener('click', () => {
-  chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })
-})
-
-// ─── Inyectar prefs en apiFetch al capturar ────────────────────────────────
-
-async function getPrefs() {
-  const saved = await storageGet(STORAGE_KEY_PREFS)
-  return { ...DEFAULT_PREFS, ...(saved || {}) }
-}
-
-// ─── Auth ──────────────────────────────────────────────────────────────────
-
-async function tryAutoPasteFromClipboard() {
-  // Si navigator.clipboard.readText está disponible y hay un token en el
-  // portapapeles, autopegarlo. Ahorra un paso al usuario.
-  try {
-    if (!navigator.clipboard || !navigator.clipboard.readText) return
-    const txt = (await navigator.clipboard.readText()).trim()
-    if (txt.startsWith('urreai_ext_') && txt.length >= 30) {
-      const input = document.getElementById('token-input')
-      if (input && !input.value) {
-        input.value = txt
-        input.style.borderColor = '#10B981'
-      }
-    }
-  } catch { /* clipboard permission denied, ignore */ }
-}
-
-// Botón prominente — abre login para quien no tiene sesión o es nuevo
-document.getElementById('open-app-login-btn').addEventListener('click', () => {
-  chrome.tabs.create({ url: `${API_BASE}/login?from=extension` })
-})
-
-document.getElementById('connect-btn').addEventListener('click', async () => {
-  // Abre la página de vinculación en una pestaña nueva. El popup se
-  // cierra automáticamente (comportamiento normal del navegador). Cuando
-  // el usuario vuelva a click en el ícono, el popup abre de nuevo y ve
-  // tanto el botón como el campo para pegar listos.
-  chrome.tabs.create({ url: `${API_BASE}/dashboard/extension` })
-})
-
-document.getElementById('save-token-btn').addEventListener('click', async () => {
-  const input = document.getElementById('token-input')
-  const errorEl = document.getElementById('token-error')
-  const token = (input.value || '').trim()
-  errorEl.classList.add('hidden')
-  if (!token.startsWith('urreai_ext_')) {
-    errorEl.textContent = 'El código debe empezar con "urreai_ext_".'
-    errorEl.classList.remove('hidden')
+$('vincular-con-codigo').addEventListener('click', async () => {
+  const error = $('error-codigo')
+  const codigo = $('codigo').value.trim()
+  error.classList.add('oculta')
+  if (!/^urreai_ext_[a-f0-9]{40}$/.test(codigo)) {
+    error.textContent = 'Ese no es un código de UrreAI: empieza por «urreai_ext_». Genera uno en la página de la extensión.'
+    error.classList.remove('oculta')
     return
   }
-  await storageSet(STORAGE_KEY_TOKEN, token)
+  await guardar({ [CLAVE.token]: codigo })
   try {
-    // Validar el token contra /api/extension/context
-    await apiFetch('/api/extension/context')
-    showView('main')
-    await loadPatients()
+    await pedirALaApp('/api/extension/context')
+    mostrar('principal')
+    await iniciarPrincipal()
   } catch (err) {
-    await storageRemove(STORAGE_KEY_TOKEN)
-    errorEl.textContent = err.message || 'Código inválido. Copia de nuevo desde la página.'
-    errorEl.classList.remove('hidden')
+    await borrar([CLAVE.token])
+    error.textContent = err.message === 'SIN_VINCULAR'
+      ? 'La app no reconoció el código. Genera otro en la página de la extensión.'
+      : err.message
+    error.classList.remove('oculta')
   }
 })
 
-document.getElementById('logout-btn').addEventListener('click', async () => {
-  await storageRemove(STORAGE_KEY_TOKEN)
-  await storageRemove(STORAGE_KEY_PATIENT)
-  document.getElementById('token-input').value = ''
-  showView('auth')
+$('desvincular').addEventListener('click', async () => {
+  // Se desvincula también en la cuenta, no solo aquí: si no, el código seguiría
+  // valiendo seis meses en la lista de la página.
+  try {
+    await pedirALaApp('/api/extension/tokens', { method: 'DELETE', body: '{}' })
+  } catch { /* sin red o ya desvinculada: igual se borra aquí */ }
+  await borrar([CLAVE.token, CLAVE.paciente, CLAVE.api])
+  $('codigo').value = ''
+  mostrar('vincular')
 })
 
-// ─── Patients ──────────────────────────────────────────────────────────────
+// ─── Pacientes ─────────────────────────────────────────────────────────────
 
-async function loadPatients() {
-  const hint = document.getElementById('patient-hint')
-  const select = document.getElementById('patient-select')
-  hint.textContent = 'Cargando tus pacientes…'
+function aBase64(texto) {
+  const bytes = new TextEncoder().encode(texto)
+  let binario = ''
+  bytes.forEach(b => { binario += String.fromCharCode(b) })
+  return btoa(binario)
+}
 
+async function cargarPacientes() {
+  const pista = $('pista-paciente')
+  const selector = $('paciente')
+  pista.textContent = 'Cargando tus pacientes…'
   try {
-    const { data } = await apiFetch('/api/extension/context')
-    const rounds = data.roundPatients || []
-    const soap = data.soapPatients || []
-    const recent = data.recentPatients || []
+    const { ronda = [], notas = [] } = await pedirALaApp('/api/extension/context')
+    selector.innerHTML = '<option value="">Elige un paciente</option>'
+    const etiquetas = new Map()
 
-    select.innerHTML = '<option value="">— Selecciona un paciente —</option>'
+    if (ronda.length) {
+      const grupo = document.createElement('optgroup')
+      grupo.label = 'Mi ronda'
+      for (const p of ronda) {
+        const opcion = document.createElement('option')
+        opcion.value = `ronda:${p.id}`
+        opcion.textContent = p.cama ? `Cama ${p.cama} · ${p.nombre}` : p.nombre
+        etiquetas.set(opcion.value, p.nombre)
+        grupo.appendChild(opcion)
+      }
+      selector.appendChild(grupo)
+    }
+    if (notas.length) {
+      const grupo = document.createElement('optgroup')
+      grupo.label = 'Notas del paciente'
+      for (const p of notas) {
+        const opcion = document.createElement('option')
+        opcion.value = `soap:${aBase64(p.alias)}`
+        opcion.textContent = `${p.alias} · ${p.notas} ${p.notas === 1 ? 'nota' : 'notas'}`
+        etiquetas.set(opcion.value, p.alias)
+        grupo.appendChild(opcion)
+      }
+      selector.appendChild(grupo)
+    }
+    selector.dataset.etiquetas = JSON.stringify([...etiquetas])
 
-    if (rounds.length > 0) {
-      const group = document.createElement('optgroup')
-      group.label = `En ronda (${rounds.length})`
-      rounds.forEach(p => {
-        const opt = document.createElement('option')
-        opt.value = `round:${p.roundId}:${p.id}`
-        opt.textContent = `${p.nombre || p.alias} · ${p.cama || 'sin cama'}`
-        group.appendChild(opt)
-      })
-      select.appendChild(group)
-    }
-    if (soap.length > 0) {
-      const group = document.createElement('optgroup')
-      group.label = `Notas SOAP (${soap.length})`
-      soap.forEach(p => {
-        const opt = document.createElement('option')
-        // base64 del alias para soportar caracteres especiales (tildes, espacios)
-        const b64 = btoa(unescape(encodeURIComponent(p.alias)))
-        opt.value = `soap:${b64}`
-        opt.textContent = `${p.alias} · ${p.count} nota${p.count === 1 ? '' : 's'}`
-        group.appendChild(opt)
-      })
-      select.appendChild(group)
-    }
-    if (recent.length > 0) {
-      const group = document.createElement('optgroup')
-      group.label = `Recientes (consulta)`
-      recent.forEach(p => {
-        const opt = document.createElement('option')
-        opt.value = `patient:${p.id}`
-        opt.textContent = p.nombre
-        group.appendChild(opt)
-      })
-      select.appendChild(group)
-    }
+    const total = ronda.length + notas.length
+    pista.textContent = total
+      ? 'Los de Mi ronda guardan laboratorios; los de Notas del paciente, todo en la nota de hoy.'
+      : 'Todavía no tienes pacientes: añádelos en Mi ronda o en Notas del paciente.'
 
-    const total = rounds.length + soap.length + recent.length
-    if (total === 0) {
-      hint.innerHTML = 'Aún no tienes pacientes. <a href="' + API_BASE + '/dashboard" target="_blank" rel="noopener" style="color:#7c3aed">Crea uno en UrreAI →</a>'
-    } else {
-      hint.textContent = `${total} disponibles · se selecciona automáticamente al volver.`
-    }
-
-    // Recuperar seleccion previa
-    const saved = await storageGet(STORAGE_KEY_PATIENT)
-    if (saved && Array.from(select.options).some(o => o.value === saved)) {
-      select.value = saved
-    }
-    // Habilitar las acciones que no dependen de paciente (calcs, flashcard,
-    // caso rapido, sesion de hoy) desde el inicio.
-    updateActionsEnabled()
+    const { [CLAVE.paciente]: guardado } = await leer([CLAVE.paciente])
+    if (guardado && etiquetas.has(guardado.destino)) selector.value = guardado.destino
+    await actualizarAcciones()
   } catch (err) {
-    if (err.message === 'NO_AUTH') {
-      showView('auth')
-      return
-    }
-    hint.textContent = 'Error cargando pacientes.'
+    if (err.message === 'SIN_VINCULAR') { mostrar('vincular'); return }
+    pista.textContent = 'No se pudieron cargar tus pacientes. Prueba con el botón de recargar.'
   }
 }
 
-document.getElementById('patient-select').addEventListener('change', async e => {
-  await storageSet(STORAGE_KEY_PATIENT, e.target.value)
-  updateActionsEnabled()
+$('paciente').addEventListener('change', async (e) => {
+  const destino = e.target.value
+  const etiquetas = new Map(JSON.parse(e.target.dataset.etiquetas || '[]'))
+  if (destino) await guardar({ [CLAVE.paciente]: { destino, nombre: etiquetas.get(destino) || 'el paciente' } })
+  else await borrar([CLAVE.paciente])
+  await actualizarAcciones()
 })
 
-document.getElementById('refresh-patients').addEventListener('click', () => loadPatients())
+$('recargar').addEventListener('click', () => cargarPacientes())
 
-const ACTIONS_NO_PATIENT = new Set(['calculator-favs', 'new-case', 'new-flashcard', 'today-study'])
-
-function updateActionsEnabled() {
-  const val = document.getElementById('patient-select').value
-  document.querySelectorAll('.action[data-action]').forEach(btn => {
-    const action = btn.getAttribute('data-action')
-    if (ACTIONS_NO_PATIENT.has(action)) {
-      btn.disabled = false
-      return
-    }
-    btn.disabled = !val
+async function actualizarAcciones() {
+  const { modo } = await preferencias()
+  const hayPaciente = Boolean($('paciente').value)
+  document.querySelectorAll('[data-con-paciente]').forEach(boton => {
+    boton.disabled = !hayPaciente && modo !== 'clipboard'
   })
 }
 
-// ─── Feedback helper ───────────────────────────────────────────────────────
+// ─── Acciones ──────────────────────────────────────────────────────────────
 
-function showFeedback(type, text) {
-  const fb = document.getElementById('feedback')
-  fb.className = `feedback feedback--${type}`
-  fb.textContent = text
-  fb.classList.remove('hidden')
-  if (type === 'ok') setTimeout(() => fb.classList.add('hidden'), 4000)
-}
-
-// ─── Actions ───────────────────────────────────────────────────────────────
-
-document.querySelectorAll('.action[data-action]').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    const action = btn.getAttribute('data-action')
-    const target = document.getElementById('patient-select').value
-
-    // Acciones que no requieren paciente activo
-    if (action === 'calculator-favs') {
-      chrome.tabs.create({ url: `${API_BASE}/dashboard/calculators?view=favoritas` })
-      window.close()
-      return
-    }
-    if (action === 'new-case') {
-      chrome.tabs.create({ url: `${API_BASE}/dashboard/logbook?new=case` })
-      window.close()
-      return
-    }
-    if (action === 'new-flashcard') {
-      chrome.tabs.create({ url: `${API_BASE}/dashboard/study-queue?new=1` })
-      window.close()
-      return
-    }
-    if (action === 'today-study') {
-      chrome.tabs.create({ url: `${API_BASE}/dashboard/study?tab=hoy` })
-      window.close()
-      return
-    }
-
-    if (!target) {
-      showFeedback('err', 'Selecciona primero un paciente.')
-      return
-    }
-
-    if (action === 'capture-lab' || action === 'capture-vitals' || action === 'capture-imaging') {
-      // Pedir al background que inyecte el overlay en el tab activo
-      const captureType =
-        action === 'capture-lab'     ? 'lab' :
-        action === 'capture-imaging' ? 'imaging' :
-        'vital'
-      chrome.runtime.sendMessage({ type: 'START_CAPTURE', captureType, target }, response => {
-        if (response?.error) showFeedback('err', response.error)
-        else {
-          showFeedback('info', 'Selecciona la región en la pestaña. Cuando termines, la IA la procesa.')
-          window.close()
-        }
-      })
-      return
-    }
-
-    if (action === 'save-selection') {
-      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-        const tab = tabs[0]
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: () => window.getSelection()?.toString() || '',
-        }, async results => {
-          const text = (results?.[0]?.result || '').trim()
-          if (!text) {
-            showFeedback('err', 'No hay texto seleccionado en la pestaña.')
-            return
-          }
-          try {
-            const prefs = await getPrefs()
-            await apiFetch('/api/extension/capture', {
-              method: 'POST',
-              body: JSON.stringify({
-                kind: 'note',
-                target,
-                text,
-                sourceUrl: tab.url,
-                field: prefs.fieldNote,
-                appendToTodayNote: prefs.appendToToday,
-                saveMode: prefs.saveMode,
-              }),
-            })
-            let tipo
-            if (prefs.saveMode === 'clipboard')   tipo = 'copiado al portapapeles'
-            else if (prefs.saveMode === 'both')   tipo = 'guardado + copiado al portapapeles'
-            else                                   tipo = prefs.appendToToday ? 'agregado a nota de hoy' : 'nota nueva creada'
-            showFeedback('ok', `✓ ${text.length} caracteres — ${tipo}`)
-          } catch (err) {
-            showFeedback('err', err.message || 'Error guardando')
-          }
-        })
-      })
-      return
-    }
-  })
-})
-
-// ─── Init ──────────────────────────────────────────────────────────────────
-
-// ─── Populate popular calculators grid ───────────────────────────────────
-
-// Los `q` deben coincidir con name/description/tags de CALCULATORS en
-// urreai-app/src/app/(dashboard)/dashboard/calculators/page.tsx — el filtro
-// de la app hace `tags.some(t => t.includes(q.toLowerCase()))` así que el
-// query tiene que coincidir LITERAL con un tag o substring del nombre.
-// Si cambias un tag en la app, actualiza también este array.
-const POPULAR_CALCS = [
-  { name: 'Glasgow',       q: 'glasgow',  color: '#3B82F6' },
-  { name: 'CURB-65',       q: 'curb65',   color: '#10B981' },
-  { name: 'qSOFA',         q: 'qsofa',    color: '#EF4444' },
-  { name: 'Apgar',         q: 'apgar',    color: '#F59E0B' },
-  { name: 'IMC / BMI',     q: 'imc',      color: '#8B5CF6' },
-  { name: 'TFG CKD-EPI',   q: 'tfg',      color: '#06B6D4' },
-  { name: 'Dosis peds',    q: 'dosis',    color: '#EC4899' },
-  { name: 'PERC TEP',      q: 'perc',     color: '#0EA5E9' },
-  { name: 'CHA₂DS₂-VASc',  q: 'chads',    color: '#DC2626' },
-  { name: 'Z-score OMS',   q: 'zscore',   color: '#059669' },
-  { name: 'NIHSS',         q: 'nihss',    color: '#7C3AED' },
-  { name: 'PEWS',          q: 'pews',     color: '#F97316' },
-]
-
-function renderCalcGrid() {
-  const grid = document.getElementById('calc-grid')
-  if (!grid) return
-  grid.innerHTML = ''
-  POPULAR_CALCS.forEach(c => {
-    const btn = document.createElement('button')
-    btn.type = 'button'
-    btn.className = 'calc-pill'
-    btn.title = `Abrir ${c.name} en UrreAI`
-    btn.innerHTML = `<span class="calc-pill__dot" style="background:${c.color}"></span>${c.name}`
-    btn.addEventListener('click', () => {
-      chrome.tabs.create({ url: `${API_BASE}/dashboard/calculators?q=${encodeURIComponent(c.q)}` })
-      window.close()
+/** El texto seleccionado en la pestaña, o cadena vacía donde el navegador no deja leerlo. */
+async function seleccionDeLaPestana() {
+  try {
+    const [tab] = await nav.tabs.query({ active: true, currentWindow: true })
+    const [{ result } = {}] = await nav.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => (window.getSelection ? window.getSelection().toString() : ''),
     })
-    grid.appendChild(btn)
+    return { tab, texto: (result || '').trim() }
+  } catch {
+    return { tab: null, texto: '' }
+  }
+}
+
+const TIPO_DE_CAPTURA = { 'capturar-lab': 'lab', 'capturar-signos': 'vital', 'capturar-informe': 'imaging' }
+
+document.querySelectorAll('[data-accion]').forEach(boton => {
+  boton.addEventListener('click', async () => {
+    const accion = boton.getAttribute('data-accion')
+    const base = await baseDeLaApp()
+
+    if (accion === 'preguntar' || accion === 'flashcard') {
+      const { texto } = await seleccionDeLaPestana()
+      if (accion === 'preguntar') {
+        await abrir(texto ? E.enlace(base, 'pregunta', texto) : `${base}/dashboard/chat-evidencia`)
+      } else {
+        await abrir(E.enlace(base, 'flashcard', texto))
+      }
+      return
+    }
+    if (accion === 'caso') { await abrir(E.enlace(base, 'caso')); return }
+    if (accion === 'estudio') { await abrir(E.enlace(base, 'estudio')); return }
+
+    if (TIPO_DE_CAPTURA[accion]) {
+      chrome.runtime.sendMessage({ type: 'START_CAPTURE', captureType: TIPO_DE_CAPTURA[accion] }, (r) => {
+        const error = chrome.runtime.lastError ? chrome.runtime.lastError.message : r?.error
+        if (error) responder(error, 'error')
+        else window.close()
+      })
+      return
+    }
+
+    if (accion === 'nota') {
+      const { tab, texto } = await seleccionDeLaPestana()
+      if (!texto) { responder('Selecciona primero el texto en la página.', 'error'); return }
+      const p = await preferencias()
+      const { [CLAVE.paciente]: paciente } = await leer([CLAVE.paciente])
+      try {
+        const datos = await pedirALaApp('/api/extension/capture', {
+          method: 'POST',
+          body: JSON.stringify({
+            kind: 'note', target: paciente?.destino, text: texto, sourceUrl: tab?.url || '',
+            field: p.campoTexto, appendToTodayNote: p.notaDeHoy, saveMode: p.modo,
+          }),
+        })
+        let copiado = false
+        if (datos.clipboardText) {
+          try { await navigator.clipboard.writeText(datos.clipboardText); copiado = true } catch { copiado = false }
+        }
+        const partes = []
+        if (datos.guardado) partes.push(`Guardado en ${paciente?.nombre || 'el paciente'}.`)
+        if (datos.aviso) partes.push(datos.aviso)
+        else if (copiado) partes.push('Copiado: pégalo donde lo necesites.')
+        responder(partes.join(' ') || 'Listo.')
+      } catch (err) {
+        if (err.message === 'SIN_VINCULAR') { mostrar('vincular'); return }
+        responder(err.message || 'No se pudo guardar.', 'error')
+      }
+    }
   })
+})
+
+$('favoritas').addEventListener('click', async () => abrir(E.enlace(await baseDeLaApp(), 'favoritas')))
+$('abrir-app').addEventListener('click', async () => abrir(`${await baseDeLaApp()}/dashboard`))
+
+function pintarCalculadoras() {
+  const contenedor = $('calculadoras')
+  contenedor.innerHTML = ''
+  for (const calc of E.CALCULADORAS.slice(0, 12)) {
+    const boton = document.createElement('button')
+    boton.type = 'button'
+    boton.className = 'pastilla'
+    boton.textContent = calc.nombre
+    boton.title = `Abrir ${calc.nombre}`
+    boton.addEventListener('click', async () => abrir(E.enlace(await baseDeLaApp(), 'calculadora', calc.id)))
+    contenedor.appendChild(boton)
+  }
+}
+
+// ─── Preferencias ──────────────────────────────────────────────────────────
+
+function marcar(nombre, valor) {
+  const opcion = document.querySelector(`input[name="${nombre}"][value="${valor}"]`)
+  if (opcion) opcion.checked = true
+}
+function marcado(nombre) {
+  return document.querySelector(`input[name="${nombre}"]:checked`)?.value
+}
+
+$('abrir-preferencias').addEventListener('click', async () => {
+  const p = await preferencias()
+  marcar('modo', p.modo)
+  marcar('notaDeHoy', p.notaDeHoy ? 'si' : 'no')
+  marcar('labConRango', p.labConRango ? 'si' : 'no')
+  $('campo-lab').value = p.campoLab
+  $('campo-signos').value = p.campoSignos
+  $('campo-imagen').value = p.campoImagen
+  $('campo-texto').value = p.campoTexto
+  $('grupo-nota-de-hoy').hidden = p.modo === 'clipboard'
+  mostrar('preferencias')
+})
+
+document.querySelectorAll('input[name="modo"]').forEach(opcion => {
+  opcion.addEventListener('change', () => { $('grupo-nota-de-hoy').hidden = marcado('modo') === 'clipboard' })
+})
+
+$('cerrar-preferencias').addEventListener('click', () => mostrar(vistaAnterior))
+
+$('guardar-preferencias').addEventListener('click', async () => {
+  await guardar({
+    [CLAVE.preferencias]: {
+      modo: marcado('modo') || 'save',
+      notaDeHoy: marcado('notaDeHoy') !== 'no',
+      labConRango: marcado('labConRango') !== 'no',
+      campoLab: $('campo-lab').value,
+      campoSignos: $('campo-signos').value,
+      campoImagen: $('campo-imagen').value,
+      campoTexto: $('campo-texto').value,
+    },
+  })
+  const hecho = $('preferencias-guardadas')
+  hecho.classList.remove('oculta')
+  setTimeout(() => hecho.classList.add('oculta'), 2000)
+  await actualizarAcciones()
+})
+
+// ─── Arranque ──────────────────────────────────────────────────────────────
+
+async function iniciarPrincipal() {
+  pintarCalculadoras()
+  await cargarPacientes()
 }
 
 ;(async () => {
-  const token = await storageGet(STORAGE_KEY_TOKEN)
-  if (token) {
-    showView('main')
-    renderCalcGrid()
-    await loadPatients()
-    return
-  }
-  showView('auth')
-  // Siempre intentar auto-pegar del clipboard — si el usuario acaba de
-  // copiar el código, se pega solo y solo tiene que dar "Vincular".
-  await tryAutoPasteFromClipboard()
+  const { [CLAVE.token]: token } = await leer([CLAVE.token])
+  if (!token) { mostrar('vincular'); return }
+  mostrar('principal')
+  await iniciarPrincipal()
 })()
-
-// ─── Habilitar pegado en la pestaña activa ─────────────────────────────────
-// Inyecta el script SOLO en la pestaña actual y SOLO cuando el usuario
-// hace clic en el botón — no se auto-inyecta en ninguna página.
-
-function pasteEnabler() {
-  // Técnica "Don't F**k With Paste": intercepta en capture phase antes que
-  // cualquier handler del sitio y llama stopImmediatePropagation() para que
-  // ningún handler de la página pueda llamar preventDefault() y bloquear el
-  // pegado. El navegador ejecuta el paste nativo normalmente.
-  if (window.__urreaiPasteEnabled) return
-  window.__urreaiPasteEnabled = true
-  document.addEventListener('paste', function (e) { e.stopImmediatePropagation() }, true)
-  document.addEventListener('copy',  function (e) { e.stopImmediatePropagation() }, true)
-  document.addEventListener('cut',   function (e) { e.stopImmediatePropagation() }, true)
-}
-

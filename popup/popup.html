@@ -7,295 +7,211 @@
 <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <!-- Header -->
-  <header class="header">
-    <img src="../icons/icon-48.png" alt="UrreAI" width="28" height="28" class="header__logo">
-    <div class="header__titles">
-      <h1 class="header__brand">UrreAI</h1>
-      <p class="header__tag">Captura clínica</p>
+  <header class="banda">
+    <span class="banda__logo"><img src="../icons/icon-48.png" alt="" width="26" height="26"></span>
+    <div class="banda__titulos">
+      <p class="banda__nombre">UrreAI</p>
+      <p id="estado" class="banda__estado">Comprobando…</p>
     </div>
-    <button id="settings-btn" class="icon-btn" title="Configuración">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <button id="abrir-preferencias" class="icono-boton icono-boton--banda" type="button" title="Preferencias" aria-label="Preferencias">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
     </button>
   </header>
 
-  <!-- Settings -->
-  <section id="view-settings" class="view hidden">
-    <div class="settings-header">
-      <button id="settings-back" class="icon-btn icon-btn--small" title="Volver">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <h2 class="settings-title">Preferencias</h2>
-    </div>
+  <!-- ── Sin vincular ─────────────────────────────────────────────────── -->
+  <section id="vista-vincular" class="vista oculta">
+    <h1 class="titulo">Vincula la extensión con tu cuenta</h1>
+    <p class="texto">Abre la página de la extensión en UrreAI y pulsa «Vincular esta extensión». Es un clic.</p>
+    <button id="ir-a-vincular" class="boton boton--principal boton--ancho" type="button">Abrir UrreAI para vincular</button>
 
-    <div class="settings-scroll">
-      <p class="settings-help">Define dónde se guardan las capturas en tus notas SOAP y cómo se formatean.</p>
-
-      <div class="settings-group">
-        <label class="settings-label">¿Qué hacer con cada captura?</label>
-        <div class="toggle-row">
-          <label class="toggle-opt">
-            <input type="radio" name="saveMode" value="save" id="mode-save">
-            <span>💾 Guardar en la historia del paciente</span>
-          </label>
-          <label class="toggle-opt">
-            <input type="radio" name="saveMode" value="clipboard" id="mode-clipboard">
-            <span>📋 Solo copiar al portapapeles</span>
-          </label>
-          <label class="toggle-opt">
-            <input type="radio" name="saveMode" value="both" id="mode-both">
-            <span>✨ Ambos — guardar y copiar</span>
-          </label>
-        </div>
-        <p class="settings-hint">En modo solo portapapeles no necesitas paciente activo — pegas el resultado donde quieras (historia del hospital, Word, etc.).</p>
-      </div>
-
-      <div class="settings-group" id="settings-group-append">
-        <label class="settings-label">¿Agregar a la nota de hoy?</label>
-        <div class="toggle-row">
-          <label class="toggle-opt">
-            <input type="radio" name="appendToday" value="true" id="append-true">
-            <span>Sí — agrega al final del campo</span>
-          </label>
-          <label class="toggle-opt">
-            <input type="radio" name="appendToday" value="false" id="append-false">
-            <span>No — crea nota nueva cada vez</span>
-          </label>
-        </div>
-      </div>
-
-      <div class="settings-group">
-        <label class="settings-label" for="field-lab">Campo para laboratorios</label>
-        <select id="field-lab" class="settings-select">
-          <option value="subjetivo">Subjetivo (S)</option>
-          <option value="objetivo">Objetivo (O)</option>
-          <option value="analisis">Análisis (A)</option>
-          <option value="plan">Plan (P)</option>
-        </select>
-      </div>
-
-      <div class="settings-group">
-        <label class="settings-label" for="field-vital">Campo para signos vitales</label>
-        <select id="field-vital" class="settings-select">
-          <option value="subjetivo">Subjetivo (S)</option>
-          <option value="objetivo">Objetivo (O)</option>
-          <option value="analisis">Análisis (A)</option>
-          <option value="plan">Plan (P)</option>
-        </select>
-      </div>
-
-      <div class="settings-group">
-        <label class="settings-label" for="field-imaging">Campo para reportes de imagen</label>
-        <select id="field-imaging" class="settings-select">
-          <option value="subjetivo">Subjetivo (S)</option>
-          <option value="objetivo">Objetivo (O)</option>
-          <option value="analisis">Análisis (A)</option>
-          <option value="plan">Plan (P)</option>
-        </select>
-      </div>
-
-      <div class="settings-group">
-        <label class="settings-label" for="field-note">Campo para texto seleccionado</label>
-        <select id="field-note" class="settings-select">
-          <option value="subjetivo">Subjetivo (S)</option>
-          <option value="objetivo">Objetivo (O)</option>
-          <option value="analisis">Análisis (A)</option>
-          <option value="plan">Plan (P)</option>
-        </select>
-      </div>
-
-      <div class="settings-group">
-        <label class="settings-label" for="format-lab">Formato custom laboratorios <span class="settings-label-hint">(opcional)</span></label>
-        <textarea id="format-lab" class="settings-textarea" placeholder="Ej: === PARACLÍNICOS {fecha} ===&#10;{content}&#10;" rows="3"></textarea>
-        <p class="settings-hint">Usa <code>{content}</code> donde quieres que se pegue el resultado. Déjalo vacío para usar el formato por defecto.</p>
-      </div>
-
-      <div class="settings-group">
-        <label class="settings-label" for="format-vital">Formato custom signos vitales <span class="settings-label-hint">(opcional)</span></label>
-        <textarea id="format-vital" class="settings-textarea" placeholder="Ej: SV: {content}" rows="2"></textarea>
-      </div>
-
-      <div class="settings-group">
-        <label class="settings-label" for="format-imaging">Formato custom reporte de imagen <span class="settings-label-hint">(opcional)</span></label>
-        <textarea id="format-imaging" class="settings-textarea" placeholder="Ej: === IMAGENOLOGÍA ===&#10;{content}&#10;" rows="3"></textarea>
-      </div>
-
-      <div class="settings-group settings-group--kbd">
-        <label class="settings-label">Atajos de teclado</label>
-        <div class="kbd-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd><span>Abrir popup</span></div>
-        <div class="kbd-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd><span>Capturar laboratorio</span></div>
-        <div class="kbd-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd><span>Capturar signos vitales</span></div>
-        <div class="kbd-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd><span>Capturar reporte de imagen</span></div>
-        <button type="button" id="open-shortcuts" class="settings-link-btn">Personalizar atajos →</button>
-      </div>
-    </div>
-
-    <div class="settings-footer">
-      <button id="save-prefs" class="btn btn--primary btn--block">Guardar preferencias</button>
-      <p id="prefs-saved" class="prefs-saved hidden">✓ Guardado</p>
-    </div>
+    <details class="codigo">
+      <summary>¿Tienes un código?</summary>
+      <label class="etiqueta" for="codigo">Pégalo aquí</label>
+      <input id="codigo" class="campo" type="text" placeholder="urreai_ext_…" autocomplete="off" spellcheck="false">
+      <button id="vincular-con-codigo" class="boton boton--secundario boton--ancho" type="button">Vincular con el código</button>
+      <p id="error-codigo" class="error oculta" role="alert"></p>
+    </details>
   </section>
 
-  <!-- No autenticado -->
-  <section id="view-auth" class="view hidden">
-    <div class="auth-card">
-      <div class="auth-card__icon">
-        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      </div>
-      <h2 class="auth-card__title">Conecta tu cuenta UrreAI</h2>
-      <p class="auth-card__sub">Genera un código una vez en tu cuenta de UrreAI y pégalo acá para vincular la extensión.</p>
-
-      <!-- CTA principal para quien aún no tiene cuenta o necesita iniciar sesión -->
-      <button id="open-app-login-btn" class="btn btn--primary btn--block" style="margin-bottom:16px;">
-        Abrir UrreAI e iniciar sesión
+  <!-- ── Vinculada ────────────────────────────────────────────────────── -->
+  <section id="vista-principal" class="vista oculta">
+    <p class="grupo">De lo que estás leyendo</p>
+    <div class="tarjetas">
+      <button class="accion" type="button" data-accion="preguntar">
+        <span class="accion__icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <span class="accion__texto">
+          <span class="accion__titulo">Preguntar al chat de evidencia</span>
+          <span class="accion__detalle">Con el texto que tengas seleccionado</span>
+        </span>
       </button>
-
-      <!-- Paso 1: generar codigo -->
-      <div class="auth-step">
-        <div class="auth-step__num">1</div>
-        <div class="auth-step__body">
-          <p class="auth-step__title">Genera el código</p>
-          <button id="connect-btn" class="btn btn--secondary btn--block">
-            Abrir app.urreai.com/dashboard/extension
-          </button>
-          <p class="auth-step__hint">Se abre en una pestaña nueva. Click en &quot;Generar código&quot; y copia.</p>
-        </div>
-      </div>
-
-      <!-- Paso 2: pegar codigo (siempre visible) -->
-      <div class="auth-step">
-        <div class="auth-step__num">2</div>
-        <div class="auth-step__body">
-          <p class="auth-step__title">Pega el código aquí</p>
-          <input id="token-input" class="token-input" type="text" placeholder="urreai_ext_..." autocomplete="off" spellcheck="false">
-          <button id="save-token-btn" class="btn btn--primary btn--block">Vincular extensión</button>
-          <p id="token-error" class="token-error hidden"></p>
-        </div>
-      </div>
+      <button class="accion" type="button" data-accion="flashcard">
+        <span class="accion__icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="7" y1="10" x2="17" y2="10"/><line x1="7" y1="14" x2="13" y2="14"/></svg>
+        </span>
+        <span class="accion__texto">
+          <span class="accion__titulo">Crear flashcard</span>
+          <span class="accion__detalle">La selección de frente; el dorso lo escribes tú</span>
+        </span>
+      </button>
     </div>
-  </section>
 
-  <!-- Autenticado -->
-  <section id="view-main" class="view hidden">
-    <!-- Selector de paciente -->
-    <div class="patient-picker">
-      <label class="patient-picker__label">Paciente activo</label>
-      <div class="patient-picker__box">
-        <select id="patient-select" class="patient-select">
-          <option value="">— Selecciona un paciente —</option>
+    <p class="grupo">Rotación</p>
+    <div class="tarjetas">
+      <button class="accion" type="button" data-accion="caso">
+        <span class="accion__icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 6H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+        </span>
+        <span class="accion__texto">
+          <span class="accion__titulo">Registrar un caso</span>
+          <span class="accion__detalle">En el registro de rotaciones</span>
+        </span>
+      </button>
+      <button class="accion" type="button" data-accion="estudio">
+        <span class="accion__icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>
+        </span>
+        <span class="accion__texto">
+          <span class="accion__titulo">Plan de estudio</span>
+          <span class="accion__detalle">Lo que te toca hoy</span>
+        </span>
+      </button>
+    </div>
+
+    <div class="grupo-fila">
+      <p class="grupo">Calculadoras</p>
+      <button id="favoritas" class="enlace" type="button">Mis favoritas</button>
+    </div>
+    <div id="calculadoras" class="calculadoras"></div>
+
+    <p class="grupo">Para un paciente</p>
+    <div class="paciente">
+      <div class="paciente__fila">
+        <select id="paciente" class="campo campo--select" aria-label="Paciente">
+          <option value="">Elige un paciente</option>
         </select>
-        <button id="refresh-patients" class="icon-btn icon-btn--small" title="Refrescar">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        <button id="recargar" class="icono-boton" type="button" title="Volver a cargar tus pacientes" aria-label="Volver a cargar tus pacientes">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         </button>
       </div>
-      <p id="patient-hint" class="patient-picker__hint">Cargando tus pacientes…</p>
+      <p id="pista-paciente" class="pista">Cargando tus pacientes…</p>
     </div>
-
-    <!-- Acciones rápidas -->
-    <div class="actions">
-      <!-- ACCIONES PARA ESTUDIANTES -->
-      <p class="actions-label">Para rotaciones</p>
-
-      <button class="action" data-action="new-case">
-        <div class="action__icon action__icon--indigo">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-        </div>
-        <div class="action__text">
-          <p class="action__title">Registrar caso rápido</p>
-          <p class="action__sub">Entre pacientes, en 30 segundos</p>
-        </div>
-      </button>
-
-      <button class="action" data-action="new-flashcard">
-        <div class="action__icon action__icon--amber">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
-        </div>
-        <div class="action__text">
-          <p class="action__title">Nueva flashcard</p>
-          <p class="action__sub">Guarda un concepto que viste hoy</p>
-        </div>
-      </button>
-
-      <button class="action" data-action="calculator-favs">
-        <div class="action__icon action__icon--emerald">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        </div>
-        <div class="action__text">
-          <p class="action__title">Mis calculadoras favoritas</p>
-          <p class="action__sub">Abre directo tus ⭐ — Glasgow, CURB, qSOFA...</p>
-        </div>
-      </button>
-
-      <!-- Grid de calculadoras populares — acceso directo -->
-      <div class="calc-grid-wrap">
-        <p class="calc-grid-label">Populares · click para abrir</p>
-        <div class="calc-grid" id="calc-grid"></div>
-      </div>
-
-      <button class="action" data-action="today-study">
-        <div class="action__icon action__icon--violet">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        </div>
-        <div class="action__text">
-          <p class="action__title">Mi sesión de hoy</p>
-          <p class="action__sub">Qué estudiar según tu plan</p>
-        </div>
-      </button>
-
-      <!-- ACCIONES CON PACIENTE ACTIVO -->
-      <p class="actions-label">Con paciente activo</p>
-
-      <button class="action" data-action="capture-lab" disabled>
-        <div class="action__icon action__icon--blue">
+    <div class="tarjetas">
+      <button class="accion" type="button" data-accion="capturar-lab" data-con-paciente>
+        <span class="accion__icono" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6L4 17a2 2 0 0 0 1.7 3h12.6A2 2 0 0 0 20 17L15 8V2"/><line x1="9" y1="2" x2="15" y2="2"/></svg>
-        </div>
-        <div class="action__text">
-          <p class="action__title">Capturar laboratorios</p>
-          <p class="action__sub">Screenshot → IA estructura los valores</p>
-        </div>
+        </span>
+        <span class="accion__texto">
+          <span class="accion__titulo">Capturar laboratorios</span>
+          <span class="accion__detalle">Arrastra sobre la tabla de resultados</span>
+        </span>
       </button>
-
-      <button class="action" data-action="capture-vitals" disabled>
-        <div class="action__icon action__icon--red">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        </div>
-        <div class="action__text">
-          <p class="action__title">Capturar signos vitales</p>
-          <p class="action__sub">TA, FC, FR, T°, SatO2 desde pantalla</p>
-        </div>
+      <button class="accion" type="button" data-accion="capturar-signos" data-con-paciente>
+        <span class="accion__icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </span>
+        <span class="accion__texto">
+          <span class="accion__titulo">Capturar signos vitales</span>
+          <span class="accion__detalle">TA, FC, FR, temperatura, SatO₂</span>
+        </span>
       </button>
-
-      <button class="action" data-action="capture-imaging" disabled>
-        <div class="action__icon action__icon--violet">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        </div>
-        <div class="action__text">
-          <p class="action__title">Capturar reporte de imagen</p>
-          <p class="action__sub">RX, ecografía, TAC, RM — IA estructura el informe</p>
-        </div>
+      <button class="accion" type="button" data-accion="capturar-informe" data-con-paciente>
+        <span class="accion__icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </span>
+        <span class="accion__texto">
+          <span class="accion__titulo">Capturar un informe de imagen</span>
+          <span class="accion__detalle">El texto del informe: radiografía, ecografía, TAC…</span>
+        </span>
       </button>
-
-      <button class="action" data-action="save-selection" disabled>
-        <div class="action__icon action__icon--teal">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 2 14 8 20 8"/><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>
-        </div>
-        <div class="action__text">
-          <p class="action__title">Guardar selección como nota</p>
-          <p class="action__sub">Click derecho en el texto o este botón</p>
-        </div>
+      <button class="accion" type="button" data-accion="nota" data-con-paciente>
+        <span class="accion__icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+        </span>
+        <span class="accion__texto">
+          <span class="accion__titulo">Guardar la selección</span>
+          <span class="accion__detalle">En la nota de hoy del paciente</span>
+        </span>
       </button>
     </div>
+    <p class="nota-privacidad">Captura solo los resultados, sin el nombre ni el documento del paciente.</p>
 
-    <!-- Feedback inline -->
-    <div id="feedback" class="feedback hidden" role="status"></div>
+    <div id="respuesta" class="respuesta oculta" role="status"></div>
 
-    <!-- Footer -->
-    <footer class="footer">
-      <a id="open-app" class="footer__link" href="https://app.urreai.com/dashboard" target="_blank" rel="noopener">Abrir UrreAI</a>
-      <button id="logout-btn" class="footer__link footer__link--muted">Cerrar sesión</button>
+    <footer class="pie">
+      <button id="abrir-app" class="enlace" type="button">Abrir UrreAI</button>
+      <button id="desvincular" class="enlace enlace--apagado" type="button">Desvincular</button>
     </footer>
   </section>
 
+  <!-- ── Preferencias ─────────────────────────────────────────────────── -->
+  <section id="vista-preferencias" class="vista oculta">
+    <div class="preferencias__cabecera">
+      <button id="cerrar-preferencias" class="icono-boton" type="button" title="Volver" aria-label="Volver">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h1 class="titulo titulo--pequeno">Preferencias</h1>
+    </div>
+
+    <fieldset class="opciones">
+      <legend class="etiqueta">Con cada captura</legend>
+      <label class="opcion"><input type="radio" name="modo" value="save"> Guardarla en UrreAI</label>
+      <label class="opcion"><input type="radio" name="modo" value="clipboard"> Solo copiarla, para pegarla en otro sitio</label>
+      <label class="opcion"><input type="radio" name="modo" value="both"> Guardarla y copiarla</label>
+      <p class="pista">Solo copiarla no necesita paciente: pegas el texto donde quieras.</p>
+    </fieldset>
+
+    <fieldset class="opciones" id="grupo-nota-de-hoy">
+      <legend class="etiqueta">En Notas del paciente</legend>
+      <label class="opcion"><input type="radio" name="notaDeHoy" value="si"> Añadirla a la nota de hoy</label>
+      <label class="opcion"><input type="radio" name="notaDeHoy" value="no"> Crear una nota nueva cada vez</label>
+    </fieldset>
+
+    <fieldset class="opciones">
+      <legend class="etiqueta">Laboratorios</legend>
+      <label class="opcion"><input type="radio" name="labConRango" value="si"> Con el rango que trae el reporte, y si queda por debajo, dentro o por encima</label>
+      <label class="opcion"><input type="radio" name="labConRango" value="no"> Solo los valores</label>
+    </fieldset>
+
+    <div class="opciones">
+      <p class="etiqueta">Parte de la nota SOAP</p>
+      <label class="fila-campo">Laboratorios
+        <select id="campo-lab" class="campo campo--select campo--corto">
+          <option value="subjetivo">S</option><option value="objetivo">O</option><option value="analisis">A</option><option value="plan">P</option>
+        </select>
+      </label>
+      <label class="fila-campo">Signos vitales
+        <select id="campo-signos" class="campo campo--select campo--corto">
+          <option value="subjetivo">S</option><option value="objetivo">O</option><option value="analisis">A</option><option value="plan">P</option>
+        </select>
+      </label>
+      <label class="fila-campo">Informes de imagen
+        <select id="campo-imagen" class="campo campo--select campo--corto">
+          <option value="subjetivo">S</option><option value="objetivo">O</option><option value="analisis">A</option><option value="plan">P</option>
+        </select>
+      </label>
+      <label class="fila-campo">Texto seleccionado
+        <select id="campo-texto" class="campo campo--select campo--corto">
+          <option value="subjetivo">S</option><option value="objetivo">O</option><option value="analisis">A</option><option value="plan">P</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="opciones">
+      <p class="etiqueta">Atajos de teclado</p>
+      <p class="atajo"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>U</kbd> Abrir UrreAI</p>
+      <p class="atajo"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>L</kbd> Capturar laboratorios</p>
+      <p class="atajo"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>I</kbd> Capturar signos vitales</p>
+      <p class="atajo"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>R</kbd> Capturar un informe de imagen</p>
+      <p class="pista">En Firefox se cambian en la página de complementos; en Chrome, en chrome://extensions/shortcuts.</p>
+    </div>
+
+    <button id="guardar-preferencias" class="boton boton--principal boton--ancho" type="button">Guardar</button>
+    <p id="preferencias-guardadas" class="pista pista--ok oculta" role="status">Guardadas.</p>
+  </section>
+
+  <script src="../lib/enlaces.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

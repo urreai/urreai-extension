@@ -1,99 +1,100 @@
-# UrreAI — Extensión Chrome / Firefox
+# UrreAI · extensión de navegador
 
-![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
-![License: MIT](https://img.shields.io/badge/License-MIT-green)
-![Chrome](https://img.shields.io/badge/Chrome-109%2B-yellow)
-![Firefox](https://img.shields.io/badge/Firefox-109%2B-orange)
+![Manifest V3](https://img.shields.io/badge/Manifest-V3-047857)
+![License: MIT](https://img.shields.io/badge/License-MIT-047857)
+![Chrome 121+](https://img.shields.io/badge/Chrome-121%2B-047857)
+![Firefox 121+](https://img.shields.io/badge/Firefox-121%2B-047857)
 
-> **EN:** Browser extension (Manifest V3, Chrome & Firefox) that brings UrreAI's clinical
-> capture actions — labs, vital signs, imaging reports and notes — into any browser tab,
-> sending them straight to the active patient without switching windows.
+> **EN:** Browser extension (Manifest V3, Chrome & Firefox) for UrreAI, the study app for
+> medical students in Colombia. Ask the evidence chat about what you are reading, turn a
+> selection into a flashcard, or capture lab results for a patient of your ward round.
 
-Extensión de navegador que trae las acciones clínicas clave de UrreAI a **cualquier pestaña** — sistema del hospital, laboratorios, UpToDate, etc. — sin cambiar de ventana.
+Lo que lees en rotación, a UrreAI sin copiar y pegar.
 
 ## Qué hace
 
-| Acción | Flujo |
-|---|---|
-| **Capturar laboratorios** | Seleccionas una región de la pantalla (tabla de labs) → IA la estructura → queda en el paciente activo |
-| **Capturar signos vitales** | Igual pero para TA / FC / FR / T° / SatO2 |
-| **Capturar reporte de imagen** | RX, ecografía, TAC, RM, mamografía → IA extrae técnica, hallazgos, impresión y recomendaciones |
-| **Guardar selección como nota** | Seleccionas texto en cualquier web → click derecho o botón → queda como nota del paciente |
-| **Calculadoras** | Atajo a las 205 calculadoras de UrreAI |
+| Acción | Cómo | Adónde va |
+|---|---|---|
+| **Preguntar al chat de evidencia** | Selecciona un texto, clic derecho | Se abre el chat con la pregunta escrita. La envías tú |
+| **Crear una flashcard** | Selecciona un texto, clic derecho | Se abre el formulario con ese texto de frente. El dorso lo escribes tú |
+| **Capturar laboratorios** | Botón del popup o `Ctrl+Shift+L`, y arrastras sobre la tabla | Se transcriben con el rango que trae el reporte. Van a los laboratorios del paciente en **Mi ronda**, o a su nota de hoy en **Notas del paciente** |
+| **Capturar signos vitales o un informe de imagen** | `Ctrl+Shift+I` / `Ctrl+Shift+R` | A la nota de hoy en **Notas del paciente**. Mi ronda no los guarda: se copian para pegarlos en la nota del día |
+| **Guardar la selección** | Clic derecho, «Guardar en la nota del paciente» | A la nota de hoy del paciente |
+| **Calculadoras** | Escribe `urreai glasgow` en la barra de direcciones | Abre esa calculadora entre las 185 de UrreAI |
 
-Funciona con el mismo paciente activo tanto en **ronda hospitalaria** (estudiantes) como en **consulta** (médicos con consultorio).
+Cada captura dice al final lo que pasó de verdad: dónde se guardó, o que se copió.
 
-## Instalar en Chrome (modo desarrollador)
+## Instalar
 
-1. Descarga esta carpeta completa (`urreai-extension/`).
-2. Abre `chrome://extensions/`.
-3. Activa el toggle **"Modo de desarrollador"** (arriba a la derecha).
-4. Click **"Cargar extensión sin empaquetar"** → selecciona la carpeta `urreai-extension/`.
-5. El ícono de UrreAI aparece en la barra de extensiones.
+Todavía no está en las tiendas, así que se instala a mano.
 
-## Instalar en Firefox (temporal)
+**Chrome, Edge o Brave**
+
+1. Descarga el [ZIP](https://github.com/urreai/urreai-extension/archive/refs/heads/main.zip) y descomprímelo.
+2. Abre `chrome://extensions`, activa **Modo de desarrollador** y pulsa **Cargar extensión sin empaquetar** sobre la carpeta.
+
+**Firefox**
 
 1. Abre `about:debugging#/runtime/this-firefox`.
-2. Click **"Cargar complemento temporal…"**.
-3. Selecciona cualquier archivo dentro de `urreai-extension/` (por ejemplo `manifest.json`).
-4. Válido hasta cerrar Firefox — perfecto para probar.
+2. **Cargar complemento temporal…** y elige el `manifest.json` de la carpeta. Firefox la quita al cerrarse.
 
-## Conectar tu cuenta
+## Vincular tu cuenta
 
-1. Click en el ícono de la extensión.
-2. Click **"Conectar mi cuenta"** → se abre la página de vinculación en `app.urreai.com/dashboard/extension`.
-3. Click **"Generar código"** en esa página → copia el código `urreai_ext_...`.
-4. Vuelve al popup de la extensión → pega el código → "Vincular extensión".
+Al instalarla se abre la página de la extensión en UrreAI: pulsa **Vincular esta extensión** y listo. La página y la extensión se pasan el código entre ellas, sin portapapeles.
 
-## Cómo se usa en la ronda
+Si no la detecta (por ejemplo, con la versión 0.1), en esa misma página hay **Vincular con un código**: se genera uno y se pega en el popup, en «¿Tienes un código?».
 
-1. Click al ícono → selecciona el paciente activo (de la ronda o consulta).
-2. **Capturar laboratorios**: click en la acción → aparece un overlay sobre la pestaña actual → arrastra un rectángulo sobre la tabla de labs → la IA procesa y guarda.
-3. **Guardar selección**: selecciona texto en cualquier web → click derecho → **"UrreAI: Guardar selección como nota"**.
-4. Ve a UrreAI y encuentra los datos en el paciente.
+Cada vinculación vale seis meses. En la página se ven todas las del estudiante, con **Desvincular**; el botón **Desvincular** del popup también la desvincula en la cuenta, no solo en el navegador.
 
-## Stack
+## Privacidad y permisos
 
-- **Manifest v3** — compatible con Chrome 109+ y Firefox 109+.
-- Sin build step — JavaScript/HTML/CSS vanilla. La extensión se carga directamente desde esta carpeta.
-- Auth: token de larga duración generado desde la app (formato `urreai_ext_<40chars>`, revocable desde `/dashboard/extension`).
-- Permissions mínimos: `activeTab`, `contextMenus`, `storage`, `scripting`. No se pide permiso "all_urls" ni "tabs" amplio.
+- Nada se envía solo: cada captura la empieza el estudiante con un clic o un atajo.
+- Las capturas se envían a UrreAI para transcribirlas. Captura solo los resultados, **sin el nombre ni el documento del paciente**.
+- En el modo «solo copiar» la imagen no se guarda: se transcribe y vuelve como texto.
+- Del código de vinculación la app guarda solo su huella (SHA-256), nunca el código.
 
-## Privacidad
+| Permiso | Para qué |
+|---|---|
+| `activeTab` | Leer la selección y tomar la captura de la pestaña en la que pulsas, y solo en ese momento |
+| `scripting` | Dibujar el recorte y los avisos en esa pestaña |
+| `contextMenus` | El menú del clic derecho |
+| `storage` | Guardar el código de vinculación, el paciente elegido y tus preferencias |
+| `clipboardWrite` | Copiar lo capturado cuando no se guarda |
+| `app.urreai.com` | Hablar con UrreAI y vincularse desde su página |
 
-- Los screenshots **nunca se guardan en tu equipo ni en la extensión** — se suben directo al backend de UrreAI y se procesan con IA.
-- El usuario debe hacer click explícito en "Capturar" — nada automático.
-- Los datos terminan bajo tu cuenta de UrreAI, cifrados en Firestore, cumpliendo Ley 1581 de Colombia.
-- El token de la extensión es revocable desde la web en cualquier momento.
+Ya no pide `clipboardRead`: la 0.1 leía el portapapeles para buscar el código, y con la vinculación de un clic sobra.
 
-## Publicación en stores
+## Qué cambió en la 0.2.0
 
-### Chrome Web Store
-- Registro one-time: **USD $5**.
-- Zip de esta carpeta → upload en `chrome.google.com/webstore/devconsole/`.
-- Review: 1-3 semanas la primera vez, luego ~1-2 días por update.
-
-### Firefox Add-ons (AMO)
-- Registro: gratis.
-- Upload del zip en `addons.mozilla.org/developers/`.
-- Review: 1-2 días promedio.
+- **Las capturas por fin aparecen en la app.** La 0.1 guardaba en una ronda antigua y en colecciones que ninguna pantalla lee. Ahora el destino es un paciente de Mi ronda o de Notas del paciente.
+- **Vincular es un clic**, y **desvincular** llega a la cuenta.
+- **Preguntar al chat de evidencia** y **crear una flashcard** desde el clic derecho.
+- **Los atajos del popup abren lo que dicen.** `?new=case`, `?new=1` y `?tab=hoy` no los leía la app; ahora los enlaces son los que la app prueba (`urreai-app/src/lib/extension/enlaces.ts`, con su prueba de contrato).
+- **Las calculadoras se abren por id**, no con un texto de búsqueda que a veces daba una lista vacía.
+- **Avisos en la página.** Antes, si algo fallaba desde el clic derecho, solo quedaba en la consola.
+- **Sin el desbloqueo de pegado.** La 0.1 anulaba el bloqueo de copiar y pegar de cualquier página, incluidos los sistemas de historia clínica de los hospitales. Esos bloqueos son una decisión de la institución, y una herramienta para estudiantes no debe saltárselos.
+- **Sin formatos personalizados.** Complicaban las preferencias, y en los 58 días registrados no hubo ni una captura.
+- **La marca de UrreAI**: el isotipo como ícono, el verde de la app, sin violeta, degradados ni emojis.
 
 ## Desarrollo
 
-Edita los archivos directamente. En Chrome, recarga la extensión desde `chrome://extensions/` (botón de refresh en el card). En Firefox, recarga desde `about:debugging`.
+```bash
+npm test          # node --test: enlaces, manifiesto, marca, vinculación
+npm run lint      # web-ext lint
+npm run build     # el ZIP para las tiendas, en dist/
+py scripts/make-icons.py   # los íconos, desde scripts/isotipo-420.png
+```
 
-El popup abre en la ventana del ícono; puedes inspeccionarlo con click derecho → "Inspeccionar popup". El background service worker se inspecciona desde `chrome://extensions/` → "vista de fondo".
+Sin paso de compilación: JavaScript, HTML y CSS tal cual. En Chrome se recarga desde `chrome://extensions`; en Firefox, desde `about:debugging`.
+
+Los enlaces que abre la extensión viven en `lib/enlaces.js`, y la app tiene una prueba que carga ese archivo y exige las mismas rutas y calculadoras: si cambias uno, cambia el otro.
+
+Los textos para publicar en las tiendas están en [`tienda/`](tienda/).
 
 ## Contribuir
 
-Las contribuciones son bienvenidas. Para cambios grandes, abre primero un *issue* para discutir qué te gustaría modificar. Ver [`CONTRIBUTING.md`](CONTRIBUTING.md) para el flujo de trabajo y la convención de commits.
-
-Reportes de seguridad: ver [`SECURITY.md`](SECURITY.md).
+Para cambios grandes, abre primero un *issue*. Ver [`CONTRIBUTING.md`](CONTRIBUTING.md). Reportes de seguridad: [`SECURITY.md`](SECURITY.md).
 
 ## Licencia
 
-Distribuido bajo licencia **MIT**. Ver [`LICENSE`](LICENSE) para el texto completo.
-
----
-
-**Versión 0.1.0** · Lanzamiento experimental con cuenta de UrreAI.
+MIT. Ver [`LICENSE`](LICENSE).

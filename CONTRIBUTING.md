@@ -11,8 +11,9 @@ una plataforma para profesionales de la salud en Colombia.
    ```
 2. Haz tus cambios. La extensión es JavaScript/HTML/CSS vanilla, sin paso de build —
    cárgala sin empaquetar desde `chrome://extensions/` para probar.
-3. Verifica que funcione en Chrome 109+ y, si puedes, en Firefox 109+
-   (`about:debugging#/runtime/this-firefox`).
+3. Corre `npm test` y verifica que funcione en Chrome 121+ y, si puedes, en Firefox 121+
+   (`about:debugging#/runtime/this-firefox`). Si cambias un enlace de `lib/enlaces.js`,
+   cambia también `urreai-app/src/lib/extension/enlaces.ts`: la app prueba que coincidan.
 4. Abre un *Pull Request* describiendo qué cambia y por qué.
 
 Para cambios grandes o que toquen permisos del `manifest.json`, abre primero un *issue*

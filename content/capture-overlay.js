@@ -1,115 +1,114 @@
-/* UrreAI — content script: overlay de seleccion de region para screenshot */
-
-(function () {
-  // Evitar doble inyeccion
+/* UrreAI — recorte de una región de la pantalla para capturarla.
+ *
+ * Se inyecta solo cuando el estudiante pide una captura. Dibuja una capa encima
+ * de la página, deja arrastrar un rectángulo y le pasa sus coordenadas al fondo,
+ * que toma la foto de la pestaña y la recorta.
+ *
+ * El aviso del final dice lo que de verdad pasó, con el texto que devuelve el
+ * fondo: hasta la 0.2.0 decía «Captura guardada en UrreAI» también cuando no se
+ * había guardado nada (en Mi ronda, los signos vitales se copian y no se guardan).
+ */
+;(function () {
+  'use strict'
   if (window.__urreaiCaptureActive) return
   window.__urreaiCaptureActive = true
 
-  // Contenedor fullscreen
-  const overlay = document.createElement('div')
-  overlay.className = 'urreai-capture-overlay'
-  overlay.innerHTML = `
-    <div class="urreai-capture-hint">
-      <strong>Arrastra</strong> para seleccionar la región · <kbd>Esc</kbd> cancelar
-    </div>
-    <div class="urreai-capture-rect" style="display:none"></div>
-  `
-  document.documentElement.appendChild(overlay)
+  var capa = document.createElement('div')
+  capa.className = 'urreai-capture-overlay'
+  capa.innerHTML =
+    '<div class="urreai-capture-hint"><strong>Arrastra</strong> sobre lo que quieres capturar · <kbd>Esc</kbd> para cancelar</div>' +
+    '<div class="urreai-capture-rect" style="display:none"></div>'
+  document.documentElement.appendChild(capa)
 
-  const rect = overlay.querySelector('.urreai-capture-rect')
-  let startX = 0, startY = 0, isDragging = false
+  var marco = capa.querySelector('.urreai-capture-rect')
+  var inicioX = 0
+  var inicioY = 0
+  var arrastrando = false
+  var leyendo = null
 
-  function cleanup() {
+  function alRecibir(mensaje) {
+    // La foto ya está tomada: se puede enseñar que está leyendo sin salir en ella.
+    if (mensaje && mensaje.type === 'CAPTURA_TOMADA' && !leyendo) {
+      leyendo = aviso('Leyendo la captura…', 'info', 0)
+    }
+  }
+  chrome.runtime.onMessage.addListener(alRecibir)
+
+  function terminar() {
     window.__urreaiCaptureActive = false
-    overlay.remove()
-    document.removeEventListener('keydown', onKey, true)
+    capa.remove()
+    document.removeEventListener('keydown', alTeclear, true)
+    chrome.runtime.onMessage.removeListener(alRecibir)
   }
 
-  function onKey(e) {
+  function alTeclear(e) {
     if (e.key === 'Escape') {
-      cleanup()
+      terminar()
       chrome.runtime.sendMessage({ type: 'CAPTURE_CANCELLED' })
     }
   }
-  document.addEventListener('keydown', onKey, true)
+  document.addEventListener('keydown', alTeclear, true)
 
-  overlay.addEventListener('mousedown', e => {
+  capa.addEventListener('mousedown', function (e) {
     if (e.button !== 0) return
-    isDragging = true
-    startX = e.clientX
-    startY = e.clientY
-    rect.style.display = 'block'
-    rect.style.left = startX + 'px'
-    rect.style.top = startY + 'px'
-    rect.style.width = '0px'
-    rect.style.height = '0px'
+    arrastrando = true
+    capa.classList.add('urreai-capture-overlay--arrastrando')
+    inicioX = e.clientX
+    inicioY = e.clientY
+    marco.style.display = 'block'
+    marco.style.left = inicioX + 'px'
+    marco.style.top = inicioY + 'px'
+    marco.style.width = '0px'
+    marco.style.height = '0px'
     e.preventDefault()
   })
 
-  overlay.addEventListener('mousemove', e => {
-    if (!isDragging) return
-    const x = Math.min(startX, e.clientX)
-    const y = Math.min(startY, e.clientY)
-    const w = Math.abs(e.clientX - startX)
-    const h = Math.abs(e.clientY - startY)
-    rect.style.left = x + 'px'
-    rect.style.top = y + 'px'
-    rect.style.width = w + 'px'
-    rect.style.height = h + 'px'
+  capa.addEventListener('mousemove', function (e) {
+    if (!arrastrando) return
+    marco.style.left = Math.min(inicioX, e.clientX) + 'px'
+    marco.style.top = Math.min(inicioY, e.clientY) + 'px'
+    marco.style.width = Math.abs(e.clientX - inicioX) + 'px'
+    marco.style.height = Math.abs(e.clientY - inicioY) + 'px'
   })
 
-  overlay.addEventListener('mouseup', async e => {
-    if (!isDragging) return
-    isDragging = false
-
-    const x = Math.min(startX, e.clientX)
-    const y = Math.min(startY, e.clientY)
-    const w = Math.abs(e.clientX - startX)
-    const h = Math.abs(e.clientY - startY)
-
-    if (w < 20 || h < 20) {
-      // muy pequeño, cancelar
-      rect.style.display = 'none'
+  capa.addEventListener('mouseup', function (e) {
+    if (!arrastrando) return
+    arrastrando = false
+    var x = Math.min(inicioX, e.clientX)
+    var y = Math.min(inicioY, e.clientY)
+    var ancho = Math.abs(e.clientX - inicioX)
+    var alto = Math.abs(e.clientY - inicioY)
+    if (ancho < 20 || alto < 20) {
+      marco.style.display = 'none'
+      capa.classList.remove('urreai-capture-overlay--arrastrando')
       return
     }
 
-    // Mostrar estado "procesando"
-    const hint = overlay.querySelector('.urreai-capture-hint')
-    hint.innerHTML = '<span class="urreai-capture-spinner"></span> Procesando captura…'
-    rect.style.borderColor = '#10B981'
-    rect.style.background = 'rgba(16, 185, 129, 0.15)'
-
-    // Ocultar overlay de display (para que chrome.tabs.captureVisibleTab no lo incluya)
-    // pero mantenemos el processing indicator
-    overlay.style.background = 'transparent'
-    rect.style.display = 'none'
-    hint.style.display = 'none'
-
-    // Darle un frame al browser para que pinte
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
-
-    chrome.runtime.sendMessage({
-      type: 'CAPTURE_REGION',
-      region: {
-        x, y, width: w, height: h,
-        devicePixelRatio: window.devicePixelRatio || 1,
-      },
-    }, response => {
-      cleanup()
-      // Notificacion simple al usuario
-      if (response?.error) {
-        showToast('⚠ ' + response.error, 'err')
-      } else {
-        showToast('✓ Captura guardada en UrreAI', 'ok')
-      }
+    // La capa sale de la foto: se esconde entera antes de que el fondo la tome.
+    capa.style.visibility = 'hidden'
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        chrome.runtime.sendMessage({
+          type: 'CAPTURE_REGION',
+          region: { x: x, y: y, width: ancho, height: alto, devicePixelRatio: window.devicePixelRatio || 1 },
+        }, function (respuesta) {
+          if (leyendo) leyendo.remove()
+          terminar()
+          var error = chrome.runtime.lastError ? chrome.runtime.lastError.message : (respuesta && respuesta.error)
+          if (error) aviso(error, 'error', 7000)
+          else aviso((respuesta && respuesta.texto) || 'Listo.', 'ok', 5000)
+        })
+      })
     })
   })
 
-  function showToast(text, type) {
-    const toast = document.createElement('div')
-    toast.className = 'urreai-capture-toast urreai-capture-toast--' + type
-    toast.textContent = text
-    document.documentElement.appendChild(toast)
-    setTimeout(() => toast.remove(), 4000)
+  function aviso(texto, tipo, duracion) {
+    var caja = document.createElement('div')
+    caja.className = 'urreai-capture-toast urreai-capture-toast--' + tipo
+    caja.setAttribute('role', 'status')
+    caja.textContent = texto
+    document.documentElement.appendChild(caja)
+    if (duracion) setTimeout(function () { caja.remove() }, duracion)
+    return caja
   }
 })()
